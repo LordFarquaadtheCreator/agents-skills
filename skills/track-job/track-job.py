@@ -16,7 +16,7 @@ VALID_STATUSES = {
     "Interview!",
     "Done",
 }
-SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqNBqQGJgcWDlLHEWr5ppmYDYBchOeg05rT4_ptoM5CkKP0EUy9puAAGU96masWBSuIg/exec"
+SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxSH-qF-VA-XZEaMUAVsCV_RC6370a6DA7XRIlf9LYAY1Ja84sBO94rH6Vq0tbU3q67XQ/exec"
 
 
 def validate_url(url):
@@ -25,13 +25,15 @@ def validate_url(url):
     return url
 
 
-def validate_email(email):
-    if not email or "@" not in email or "." not in email:
+def validate_optional_email(email):
+    if not email:
+        return email
+    if "@" not in email or "." not in email:
         raise ValueError("Email must be a valid email address")
     return email
 
 
-def validate_phone(phone):
+def validate_optional_phone(phone):
     if phone:
         digits = re.sub(r"[^\d]", "", phone)
         if not (10 <= len(digits) <= 15):
@@ -51,14 +53,6 @@ def validate_status(status):
     if status not in VALID_STATUSES:
         raise ValueError(f"Status must be one of: {', '.join(sorted(VALID_STATUSES))}")
     return status
-
-
-def validate_date(date_str):
-    try:
-        datetime.strptime(date_str, "%Y-%m-%d")
-        return date_str
-    except ValueError:
-        raise ValueError("Date must be in ISO 8601 format (YYYY-MM-DD)")
 
 
 def post_to_sheet(data):
@@ -90,12 +84,11 @@ def post_to_sheet(data):
 def main():
     if len(sys.argv) < 5:
         print(
-            "Usage: track-job <link> <email> <industry> <status> [phone] [notes]",
+            "Usage: track-job <link> <industry> <status> [email] [phone] [notes]",
             file=sys.stderr,
         )
         print("\nRequired:", file=sys.stderr)
         print("  link     - Job posting URL", file=sys.stderr)
-        print("  email    - Employer contact email", file=sys.stderr)
         print(
             "  industry - Tech, Health Care, Retail, Finance, Gig, Other",
             file=sys.stderr,
@@ -108,19 +101,23 @@ def main():
             "             Applied + Emailed + Called, Interview!, Done", file=sys.stderr
         )
         print("\nOptional:", file=sys.stderr)
+        print("  email    - Employer contact email", file=sys.stderr)
         print("  phone    - Contact phone number", file=sys.stderr)
         print("  notes    - Free-form notes", file=sys.stderr)
         return 1
 
     link = validate_url(sys.argv[1])
-    email = validate_email(sys.argv[2])
-    industry = sys.argv[3]
-    status = sys.argv[4]
-    phone = sys.argv[5] if len(sys.argv) > 5 else ""
-    notes = sys.argv[6] if len(sys.argv) > 6 else ""
+    industry = sys.argv[2]
+    status = sys.argv[3]
+    email = sys.argv[4] if len(sys.argv) > 4 else None
+    phone = sys.argv[5] if len(sys.argv) > 5 else None
+    notes = sys.argv[6] if len(sys.argv) > 6 else None
+
+    if email:
+        email = validate_optional_email(sys.argv[4])
 
     if phone:
-        phone = validate_phone(phone)
+        phone = validate_optional_phone(phone)
 
     industry = validate_industry(industry)
     status = validate_status(status)
