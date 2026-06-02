@@ -76,6 +76,11 @@ def post_to_sheet(data):
     try:
         with urllib.request.urlopen(req) as response:
             result = response.read().decode("utf-8")
+
+            if "error" in result:
+                print(f"Fail: {result}")
+                return 1
+
             print(f"Success: {result}")
             return 0
     except urllib.error.HTTPError as e:
