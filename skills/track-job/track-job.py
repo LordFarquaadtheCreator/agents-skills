@@ -115,7 +115,7 @@ def main():
     status = sys.argv[3]
     email = sys.argv[4] if len(sys.argv) > 4 else None
     phone = sys.argv[5] if len(sys.argv) > 5 else None
-    notes = sys.argv[6] if len(sys.argv) > 6 else None
+    notes = ''.join(sys.argv[6:]) if len(sys.argv) > 6 else None
 
     if email:
         email = validate_optional_email(sys.argv[4])
