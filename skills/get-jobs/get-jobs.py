@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 import sys
-import urllib.request
 import urllib.error
-import json
+import urllib.request
 
 SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqNBqQGJgcWDlLHEWr5ppmYDYBchOeg05rT4_ptoM5CkKP0EUy9puAAGU96masWBSuIg/exec"
 
