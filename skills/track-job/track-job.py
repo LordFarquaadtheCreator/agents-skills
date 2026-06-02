@@ -54,12 +54,13 @@ def validate_industry(industry):
 
 
 def validate_status(status):
+    # TODO: case sensitivity
     if status not in VALID_STATUSES:
         raise ValueError(f"Status must be one of: {', '.join(sorted(VALID_STATUSES))}")
     return status
 
 
-# CRUD Methods (Google Appscripts Default)
+# CRUD Method
 def post_to_sheet(data):
     body = json.dumps(data).encode("utf-8")
     req = urllib.request.Request(
@@ -88,7 +89,7 @@ def post_to_sheet(data):
 
 # Entry
 def main():
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 4:
         print(
             "Usage: track-job <link> <industry> <status> [email] [phone] [notes]",
             file=sys.stderr,
