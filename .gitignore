@@ -1,2 +1,17 @@
+# --- Architecture ---
+# Skills live in skills/ and are the canonical source.
+# Each skill must be manually symlinked into an app's agent skill bank
+# (e.g. .zed/skills/<name>, .windsurf/skills/<name>) to be picked up.
+# This is intentional — control which apps can use which skills.
+
+# App-local config (per-app env files, tokens, etc.)
 config/
+
+# Editor/IDE skill symlink targets — these mirror back to skills/
+.zed/
+.windsurf/
+.cursor/
+.claude/
+
+# OS junk
 .DS_Store
