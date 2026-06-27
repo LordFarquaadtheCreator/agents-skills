@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
@@ -106,156 +107,277 @@ func postFollowRedirect(scriptURL string, body []byte) (string, error) {
 	return string(respBody), nil
 }
 
-func cmdGet(args []string) int {
-	scriptURL := loadScriptURL()
+var getCmd = &cobra.Command{
+	Use:   "get",
+	Short: "Retrieve all tracked job applications",
+	Long:  "Fetches all job applications from the spreadsheet. Returns JSON to stdout. Pass key-value pairs as arguments to filter.",
+	Example: `  manage-job get
+  manage-job get page 1 pageSize 10 search "Acme" industry "Tech" status "Applied Only" order "desc"`,
+	Run: func(cmd *cobra.Command, args []string) {
+		scriptURL := loadScriptURL()
 
-	if len(args) > 0 {
-		params := url.Values{}
-		for i := 0; i+1 < len(args); i += 2 {
-			params.Set(args[i], args[i+1])
+		if len(args) > 0 {
+			params := url.Values{}
+			for i := 0; i+1 < len(args); i += 2 {
+				params.Set(args[i], args[i+1])
+			}
+			if len(params) > 0 {
+				scriptURL = scriptURL + "?" + params.Encode()
+			}
 		}
-		if len(params) > 0 {
-			scriptURL = scriptURL + "?" + params.Encode()
+
+		resp, err := http.Get(scriptURL)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
 		}
-	}
+		defer resp.Body.Close()
 
-	resp, err := http.Get(scriptURL)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		return 1
-	}
-	defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading response: %v\n", err)
+			os.Exit(1)
+		}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading response: %v\n", err)
-		return 1
-	}
-
-	fmt.Print(string(body))
-	return 0
+		fmt.Print(string(body))
+	},
 }
 
-func cmdTrack(args []string) int {
-	if len(args) < 4 {
-		fmt.Fprintln(os.Stderr, "Usage: manage-job track <companyName> <link> <industry> <status> [email] [phone] [notes]")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Required:")
-		fmt.Fprintln(os.Stderr, "  companyName — Name of the company")
-		fmt.Fprintln(os.Stderr, "  link        — Job posting URL")
-		fmt.Fprintln(os.Stderr, "  industry    — Tech, Health Care, Retail, Finance, Gig, Other")
-		fmt.Fprintln(os.Stderr, "  status      — Not Started, Applied Only, Applied + Emailed, Applied + Called, Applied + Emailed + Called, Interview!, Done")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Optional:")
-		fmt.Fprintln(os.Stderr, "  email       — Employer contact email")
-		fmt.Fprintln(os.Stderr, "  phone       — Contact phone number")
-		fmt.Fprintln(os.Stderr, "  notes       — Free-form notes")
-		return 1
-	}
+var trackCmd = &cobra.Command{
+	Use:   "track <companyName> <link> <industry> <status> [email] [phone] [notes]",
+	Short: "Record a new job application",
+	Long: `Record a new job application in the spreadsheet.
+Creates a new row with today's date.
 
-	companyName := args[0]
-	link := args[1]
-	industry := args[2]
-	status := args[3]
-	email := ""
-	phone := ""
-	notes := ""
+Required args (in order):
+  companyName — Name of the company
+  link        — Job posting URL (must start with http:// or https://)
+  industry    — Tech, Health Care, Retail, Finance, Gig, Other
+  status      — Not Started, Applied Only, Applied + Emailed, Applied + Called, Applied + Emailed + Called, Interview!, Done
 
-	if len(args) > 4 {
-		email = args[4]
-	}
-	if len(args) > 5 {
-		phone = args[5]
-	}
-	if len(args) > 6 {
-		notes = strings.Join(args[6:], " ")
-	}
+Optional args (in order):
+  email — Employer contact email
+  phone — Contact phone number (10-15 digits)
+  notes — Free-form notes (all remaining args joined)`,
+	Example: `  manage-job track "Acme Corp" "https://fakejobs.com/quantum-ai-analyst" "Tech" "Not Started"
+  manage-job track "Acme Corp" "https://fakejobs.com/quantum-ai-analyst" "Tech" "Not Started" "email@email.com"
+  manage-job track "Acme Corp" "https://fakejobs.com/quantum-ai-analyst" "Tech" "Not Started" "email@email.com" "917-999-1234" "They said to email John"`,
+	Args: cobra.MinimumNArgs(4),
+	Run: func(cmd *cobra.Command, args []string) {
+		companyName := args[0]
+		link := args[1]
+		industry := args[2]
+		status := args[3]
+		email := ""
+		phone := ""
+		notes := ""
 
-	if err := validate.URL(link); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		return 1
-	}
-	if !validIndustries[industry] {
-		fmt.Fprintf(os.Stderr, "Error: industry must be one of: Tech, Health Care, Retail, Finance, Gig, Other\n")
-		return 1
-	}
-	if !validStatuses[status] {
-		fmt.Fprintf(os.Stderr, "Error: status must be one of: Not Started, Applied Only, Applied + Emailed, Applied + Called, Applied + Emailed + Called, Interview!, Done\n")
-		return 1
-	}
-	if email != "" {
-		if err := validate.Email(email); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			return 1
+		if len(args) > 4 {
+			email = args[4]
 		}
-	}
-	if phone != "" {
-		if err := validate.Phone(phone); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			return 1
+		if len(args) > 5 {
+			phone = args[5]
 		}
-	}
+		if len(args) > 6 {
+			notes = strings.Join(args[6:], " ")
+		}
 
-	today := time.Now().Format("2006-01-02")
+		if err := validate.URL(link); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		if !validIndustries[industry] {
+			fmt.Fprintf(os.Stderr, "Error: industry must be one of: Tech, Health Care, Retail, Finance, Gig, Other\n")
+			os.Exit(1)
+		}
+		if !validStatuses[status] {
+			fmt.Fprintf(os.Stderr, "Error: status must be one of: Not Started, Applied Only, Applied + Emailed, Applied + Called, Applied + Emailed + Called, Interview!, Done\n")
+			os.Exit(1)
+		}
+		if email != "" {
+			if err := validate.Email(email); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+		}
+		if phone != "" {
+			if err := validate.Phone(phone); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+		}
 
-	payload := map[string]interface{}{
-		"action":      "create",
-		"companyName": companyName,
-		"link":        link,
-		"dateApplied": today,
-		"industry":    industry,
-		"status":      status,
-	}
-	if email != "" {
-		payload["email"] = email
-	}
-	if phone != "" {
-		payload["phoneNumber"] = phone
-	}
-	if notes != "" {
-		payload["notes"] = notes
-	}
+		today := time.Now().Format("2006-01-02")
 
-	body, err := json.Marshal(payload)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error encoding payload: %v\n", err)
-		return 1
-	}
+		payload := map[string]interface{}{
+			"action":      "create",
+			"companyName": companyName,
+			"link":        link,
+			"dateApplied": today,
+			"industry":    industry,
+			"status":      status,
+		}
+		if email != "" {
+			payload["email"] = email
+		}
+		if phone != "" {
+			payload["phoneNumber"] = phone
+		}
+		if notes != "" {
+			payload["notes"] = notes
+		}
 
-	scriptURL := loadScriptURL()
-	result, err := postFollowRedirect(scriptURL, body)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		return 1
-	}
+		body, err := json.Marshal(payload)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error encoding payload: %v\n", err)
+			os.Exit(1)
+		}
 
-	if strings.Contains(result, `"error"`) {
-		fmt.Fprintf(os.Stderr, "Fail: %s\n", result)
-		return 1
-	}
+		scriptURL := loadScriptURL()
+		result, err := postFollowRedirect(scriptURL, body)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 
-	fmt.Printf("Success: %s\n", result)
-	return 0
+		if strings.Contains(result, `"error"`) {
+			fmt.Fprintf(os.Stderr, "Fail: %s\n", result)
+			os.Exit(1)
+		}
+
+		fmt.Printf("Success: %s\n", result)
+	},
+}
+
+var rootCmd = &cobra.Command{
+	Use:   "manage-job",
+	Short: "Track and retrieve job applications",
+}
+
+var patchCmd = &cobra.Command{
+	Use:   "patch --matchBy '<json>' --update '<json>'",
+	Short: "Update an existing job application",
+	Long: `Update an existing job application in the spreadsheet.
+Uses matchBy to find the row, then applies the update fields.
+
+--matchBy: JSON object with at least one field to identify the row.
+  Example: '{"companyName":"Acme Corp"}'
+
+--update: JSON object with at least one field to change.
+  Example: '{"status":"Interview!"}'`,
+	Example: `  manage-job patch --matchBy '{"companyName":"Acme Corp"}' --update '{"status":"Interview!"}'
+  manage-job patch --matchBy '{"companyName":"Acme Corp","link":"https://example.com"}' --update '{"status":"Done","notes":"Rejected"}'`,
+	Run: func(cmd *cobra.Command, args []string) {
+		matchByStr, _ := cmd.Flags().GetString("matchBy")
+		updateStr, _ := cmd.Flags().GetString("update")
+
+		if matchByStr == "" {
+			fmt.Fprintln(os.Stderr, "Error: --matchBy is required")
+			os.Exit(1)
+		}
+		if updateStr == "" {
+			fmt.Fprintln(os.Stderr, "Error: --update is required")
+			os.Exit(1)
+		}
+
+		var matchBy map[string]interface{}
+		if err := json.Unmarshal([]byte(matchByStr), &matchBy); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: invalid --matchBy JSON: %v\n", err)
+			os.Exit(1)
+		}
+
+		var update map[string]interface{}
+		if err := json.Unmarshal([]byte(updateStr), &update); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: invalid --update JSON: %v\n", err)
+			os.Exit(1)
+		}
+
+		payload := map[string]interface{}{
+			"action":  "patch",
+			"matchBy": matchBy,
+			"update":  update,
+		}
+
+		body, err := json.Marshal(payload)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error encoding payload: %v\n", err)
+			os.Exit(1)
+		}
+
+		scriptURL := loadScriptURL()
+		result, err := postFollowRedirect(scriptURL, body)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		if strings.Contains(result, `"error"`) {
+			fmt.Fprintf(os.Stderr, "Fail: %s\n", result)
+			os.Exit(1)
+		}
+
+		fmt.Printf("Success: %s\n", result)
+	},
+}
+
+var deleteCmd = &cobra.Command{
+	Use:   "delete --matchBy '<json>'",
+	Short: "Delete a job application",
+	Long: `Delete a job application from the spreadsheet.
+Uses matchBy to find the row to delete.
+
+--matchBy: JSON object with at least one field to identify the row.
+  Example: '{"companyName":"Acme Corp"}'`,
+	Example: `  manage-job delete --matchBy '{"companyName":"Acme Corp"}'
+  manage-job delete --matchBy '{"companyName":"Acme Corp","link":"https://example.com"}'`,
+	Run: func(cmd *cobra.Command, args []string) {
+		matchByStr, _ := cmd.Flags().GetString("matchBy")
+
+		if matchByStr == "" {
+			fmt.Fprintln(os.Stderr, "Error: --matchBy is required")
+			os.Exit(1)
+		}
+
+		var matchBy map[string]interface{}
+		if err := json.Unmarshal([]byte(matchByStr), &matchBy); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: invalid --matchBy JSON: %v\n", err)
+			os.Exit(1)
+		}
+
+		payload := map[string]interface{}{
+			"action":  "delete",
+			"matchBy": matchBy,
+		}
+
+		body, err := json.Marshal(payload)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error encoding payload: %v\n", err)
+			os.Exit(1)
+		}
+
+		scriptURL := loadScriptURL()
+		result, err := postFollowRedirect(scriptURL, body)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		if strings.Contains(result, `"error"`) {
+			fmt.Fprintf(os.Stderr, "Fail: %s\n", result)
+			os.Exit(1)
+		}
+
+		fmt.Printf("Success: %s\n", result)
+	},
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "Usage: manage-job <get|track> [args...]")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Commands:")
-		fmt.Fprintln(os.Stderr, "  get    — Retrieve all tracked job applications (JSON to stdout)")
-		fmt.Fprintln(os.Stderr, "  track  — Record a new job application")
-		os.Exit(1)
-	}
+	patchCmd.Flags().String("matchBy", "", "JSON object to identify the row (required)")
+	patchCmd.Flags().String("update", "", "JSON object with fields to change (required)")
+	deleteCmd.Flags().String("matchBy", "", "JSON object to identify the row (required)")
 
-	switch os.Args[1] {
-	case "get":
-		os.Exit(cmdGet(os.Args[2:]))
-	case "track":
-		os.Exit(cmdTrack(os.Args[2:]))
-	default:
-		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", os.Args[1])
-		fmt.Fprintln(os.Stderr, "Usage: manage-job <get|track> [args...]")
+	rootCmd.AddCommand(getCmd, trackCmd, patchCmd, deleteCmd)
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

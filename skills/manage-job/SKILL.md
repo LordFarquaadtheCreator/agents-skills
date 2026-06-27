@@ -7,7 +7,7 @@ metadata:
 ---
 # Manage Job Applications
 
-This skill records new job applications and retrieves existing ones from the Google Sheets backend. The script is a compiled Go binary — no Python or external runtime required.
+This skill manages job applications via the Google Sheets backend — create, read, update, and delete. The script is a compiled Go binary — no Python or external runtime required.
 
 ## Binary
 
@@ -136,6 +136,73 @@ Prints JSON to stdout:
   "totalRows": 121
 }
 ```
+
+### `patch` — Update an existing job application
+
+Updates fields on an existing row. Uses `--matchBy` to find the row and `--update` to specify which fields to change.
+
+```bash
+/Users/farquaad/agents-data/skills/manage-job/manage-job patch --matchBy '<json>' --update '<json>'
+```
+
+#### Flags
+
+- **`--matchBy`** (required) — JSON object with at least one field to identify the row. Any column can be used: `companyName`, `link`, `dateApplied`, `industry`, `phoneNumber`, `email`, `status`, `notes`.
+- **`--update`** (required) — JSON object with at least one field to change. Same columns as above.
+
+#### Examples
+
+*Change status:*
+```bash
+/Users/farquaad/agents-data/skills/manage-job/manage-job patch --matchBy '{"companyName":"Acme Corp"}' --update '{"status":"Interview!"}'
+```
+
+*Update multiple fields:*
+```bash
+/Users/farquaad/agents-data/skills/manage-job/manage-job patch --matchBy '{"companyName":"Acme Corp","link":"https://example.com"}' --update '{"status":"Done","notes":"Rejected"}'
+```
+
+#### Output
+
+On success, prints to stdout:
+```
+Success: {"status":"success"}
+```
+
+On failure, prints error to stderr and exits with code 1.
+
+### `delete` — Delete a job application
+
+Deletes a row from the spreadsheet. Uses `--matchBy` to find the row.
+
+```bash
+/Users/farquaad/agents-data/skills/manage-job/manage-job delete --matchBy '<json>'
+```
+
+#### Flags
+
+- **`--matchBy`** (required) — JSON object with at least one field to identify the row. Same columns as patch.
+
+#### Examples
+
+*Delete by company name:*
+```bash
+/Users/farquaad/agents-data/skills/manage-job/manage-job delete --matchBy '{"companyName":"Acme Corp"}'
+```
+
+*Delete by multiple fields for precision:*
+```bash
+/Users/farquaad/agents-data/skills/manage-job/manage-job delete --matchBy '{"companyName":"Acme Corp","link":"https://example.com"}'
+```
+
+#### Output
+
+On success, prints to stdout:
+```
+Success: {"status":"success"}
+```
+
+On failure, prints error to stderr and exits with code 1.
 
 ## Configuration
 
