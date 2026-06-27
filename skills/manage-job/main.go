@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"manage-job/validate"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -136,29 +136,6 @@ func cmdGet(args []string) int {
 	return 0
 }
 
-func validateURL(s string) error {
-	matched, _ := regexp.MatchString(`^https?://`, s)
-	if !matched {
-		return fmt.Errorf("link must be a valid URL starting with http:// or https://")
-	}
-	return nil
-}
-
-func validateEmail(s string) error {
-	if !strings.Contains(s, "@") || !strings.Contains(s, ".") {
-		return fmt.Errorf("email must be a valid email address")
-	}
-	return nil
-}
-
-func validatePhone(s string) error {
-	digits := regexp.MustCompile(`[^\d]`).ReplaceAllString(s, "")
-	if len(digits) < 10 || len(digits) > 15 {
-		return fmt.Errorf("phone number must be 10-15 digits")
-	}
-	return nil
-}
-
 func cmdTrack(args []string) int {
 	if len(args) < 4 {
 		fmt.Fprintln(os.Stderr, "Usage: manage-job track <companyName> <link> <industry> <status> [email] [phone] [notes]")
@@ -194,7 +171,7 @@ func cmdTrack(args []string) int {
 		notes = strings.Join(args[6:], " ")
 	}
 
-	if err := validateURL(link); err != nil {
+	if err := validate.URL(link); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
 	}
@@ -207,13 +184,13 @@ func cmdTrack(args []string) int {
 		return 1
 	}
 	if email != "" {
-		if err := validateEmail(email); err != nil {
+		if err := validate.Email(email); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			return 1
 		}
 	}
 	if phone != "" {
-		if err := validatePhone(phone); err != nil {
+		if err := validate.Phone(phone); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			return 1
 		}
