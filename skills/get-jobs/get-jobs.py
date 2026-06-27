@@ -5,7 +5,7 @@ import time
 import urllib.error
 import urllib.request
 
-SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx5PFyxIoe4KutrXMAlzQKYEa-gabA4EWslhxHaUN-_M0Aag4NA3i8NNz5fZ_tjydvbeg/exec"
+SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRQ52XCi5htaaHLO1Laizu8-pyYFKI0GEWELSnJHsP1CBDc-9OxNlkWGhlG-8l8tDxIQ/exec"
 REQUEST_TIMEOUT = 30
 MAX_RETRIES = 3
 
@@ -44,17 +44,16 @@ def _fetch() -> str:
 def _check_gas_error(body: str) -> None:
     """
     Check if a GAS JSON response signals an application-level error.
-    GAS often returns HTTP 200 with: {"success": false, "error": "..."}
-    or                                   {"success": "error", ...}
+    GAS returns HTTP 200 with: {"status": "error", "message": "..."}
     """
     try:
         data = json.loads(body)
     except json.JSONDecodeError:
         return  # not JSON, let caller handle
 
-    success_val = data.get("success")
-    if success_val is False or success_val == "error":
-        error_msg = data.get("error") or data.get("message") or "Unknown GAS error"
+    status_val = data.get("status")
+    if status_val == "error":
+        error_msg = data.get("message") or "Unknown GAS error"
         raise RuntimeError(f"GAS error: {error_msg}")
 
 
