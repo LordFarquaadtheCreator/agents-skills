@@ -139,7 +139,13 @@ Prints JSON to stdout:
 
 ## Configuration
 
-The binary reads the Apps Script deployment ID from `config/sheets-deployment.json` at the repository root. This file is gitignored and must exist on the local machine. If it is missing, the binary will print an error and exit with code 1.
+The binary reads the Apps Script deployment ID from `config/sheets-deployment.yaml` at the repository root. This file is gitignored and must exist on the local machine. Format:
+
+```yaml
+deploymentId: AKfycbwRQ52XCi5htaaHLO1Laizu8-pyYFKI0GEWELSnJHsP1CBDc-9OxNlkWGhlG-8l8tDxIQ
+```
+
+The deployment ID is the hash in the Apps Script web app URL: `https://script.google.com/macros/s/<deploymentId>/exec`. When a new deployment is created in Apps Script, update this file with the new ID. If it is missing or malformed, the binary will print an error and exit with code 1.
 
 ## Rebuilding
 
