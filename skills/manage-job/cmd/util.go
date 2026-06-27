@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -23,7 +25,11 @@ var ValidStatuses = map[string]bool{
 	"Interview!": true, "Done": true,
 }
 
-func RepoRoot() string {
+type sheetsConfig struct {
+	DeploymentID string `yaml:"deploymentId"`
+}
+
+func repoRoot() string {
 	exe, err := os.Executable()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: cannot resolve executable path: %v\n", err)
@@ -32,12 +38,8 @@ func RepoRoot() string {
 	return filepath.Dir(filepath.Dir(filepath.Dir(exe)))
 }
 
-type sheetsConfig struct {
-	DeploymentID string `yaml:"deploymentId"`
-}
-
-func LoadScriptURL() string {
-	configPath := filepath.Join(RepoRoot(), "config", "sheets-deployment.yaml")
+func loadScriptURL() string {
+	configPath := filepath.Join(repoRoot(), "config", "sheets-deployment.yaml")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: cannot read config/sheets-deployment.yaml: %v\n", err)
@@ -55,10 +57,21 @@ func LoadScriptURL() string {
 	return fmt.Sprintf("https://script.google.com/macros/s/%s/exec", cfg.DeploymentID)
 }
 
+// AppScript encapsulates communication with the deployed Apps Script web app.
+// Commands call methods on this struct — they don't deal with URLs,
+// redirects, or payload construction directly.
+type AppScript struct {
+	url string
+}
+
+func NewAppScript() *AppScript {
+	return &AppScript{url: loadScriptURL()}
+}
+
 // postFollowRedirect handles Apps Script's 302 redirect on POST.
 // Go's default client converts POST to GET on redirect, dropping the body.
 // We capture the Location header, then GET it to retrieve the actual response.
-func PostFollowRedirect(scriptURL string, body []byte) (string, error) {
+func (a *AppScript) postFollowRedirect(body []byte) (string, error) {
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -66,7 +79,7 @@ func PostFollowRedirect(scriptURL string, body []byte) (string, error) {
 		Timeout: 30 * time.Second,
 	}
 
-	req, err := http.NewRequest("POST", scriptURL, bytes.NewReader(body))
+	req, err := http.NewRequest("POST", a.url, bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -100,4 +113,58 @@ func PostFollowRedirect(scriptURL string, body []byte) (string, error) {
 	}
 
 	return string(respBody), nil
+}
+
+func (a *AppScript) Get(params url.Values) (string, error) {
+	target := a.url
+	if len(params) > 0 {
+		target = target + "?" + params.Encode()
+	}
+
+	resp, err := http.Get(target)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
+}
+
+func (a *AppScript) Create(entry map[string]interface{}) (string, error) {
+	entry["action"] = "create"
+	body, err := json.Marshal(entry)
+	if err != nil {
+		return "", err
+	}
+	return a.postFollowRedirect(body)
+}
+
+func (a *AppScript) Patch(matchBy, update map[string]interface{}) (string, error) {
+	payload := map[string]interface{}{
+		"action":  "patch",
+		"matchBy": matchBy,
+		"update":  update,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	return a.postFollowRedirect(body)
+}
+
+func (a *AppScript) Delete(matchBy map[string]interface{}) (string, error) {
+	payload := map[string]interface{}{
+		"action":  "delete",
+		"matchBy": matchBy,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	return a.postFollowRedirect(body)
 }

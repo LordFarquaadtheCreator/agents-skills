@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -76,34 +75,25 @@ Optional args (in order):
 			}
 		}
 
-		today := time.Now().Format("2006-01-02")
-
-		payload := map[string]interface{}{
-			"action":      "create",
+		entry := map[string]interface{}{
 			"companyName": companyName,
 			"link":        link,
-			"dateApplied": today,
+			"dateApplied": time.Now().Format("2006-01-02"),
 			"industry":    industry,
 			"status":      status,
 		}
 		if email != "" {
-			payload["email"] = email
+			entry["email"] = email
 		}
 		if phone != "" {
-			payload["phoneNumber"] = phone
+			entry["phoneNumber"] = phone
 		}
 		if notes != "" {
-			payload["notes"] = notes
+			entry["notes"] = notes
 		}
 
-		body, err := json.Marshal(payload)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error encoding payload: %v\n", err)
-			os.Exit(1)
-		}
-
-		scriptURL := LoadScriptURL()
-		result, err := PostFollowRedirect(scriptURL, body)
+		app := NewAppScript()
+		result, err := app.Create(entry)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)

@@ -33,19 +33,8 @@ Uses matchBy to find the row to delete.
 			os.Exit(1)
 		}
 
-		payload := map[string]interface{}{
-			"action":  "delete",
-			"matchBy": matchBy,
-		}
-
-		body, err := json.Marshal(payload)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error encoding payload: %v\n", err)
-			os.Exit(1)
-		}
-
-		scriptURL := LoadScriptURL()
-		result, err := PostFollowRedirect(scriptURL, body)
+		app := NewAppScript()
+		result, err := app.Delete(matchBy)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)

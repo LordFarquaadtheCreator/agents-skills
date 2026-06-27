@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"os"
 
@@ -17,31 +15,18 @@ var GetCmd = &cobra.Command{
 	Example: `  manage-job get
   manage-job get page 1 pageSize 10 search "Acme" industry "Tech" status "Applied Only" order "desc"`,
 	Run: func(cmd *cobra.Command, args []string) {
-		scriptURL := LoadScriptURL()
-
-		if len(args) > 0 {
-			params := url.Values{}
-			for i := 0; i+1 < len(args); i += 2 {
-				params.Set(args[i], args[i+1])
-			}
-			if len(params) > 0 {
-				scriptURL = scriptURL + "?" + params.Encode()
-			}
+		params := url.Values{}
+		for i := 0; i+1 < len(args); i += 2 {
+			params.Set(args[i], args[i+1])
 		}
 
-		resp, err := http.Get(scriptURL)
+		app := NewAppScript()
+		result, err := app.Get(params)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-		defer resp.Body.Close()
 
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading response: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Print(string(body))
+		fmt.Print(result)
 	},
 }

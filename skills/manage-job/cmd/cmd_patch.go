@@ -47,20 +47,8 @@ Uses matchBy to find the row, then applies the update fields.
 			os.Exit(1)
 		}
 
-		payload := map[string]interface{}{
-			"action":  "patch",
-			"matchBy": matchBy,
-			"update":  update,
-		}
-
-		body, err := json.Marshal(payload)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error encoding payload: %v\n", err)
-			os.Exit(1)
-		}
-
-		scriptURL := LoadScriptURL()
-		result, err := PostFollowRedirect(scriptURL, body)
+		app := NewAppScript()
+		result, err := app.Patch(matchBy, update)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
