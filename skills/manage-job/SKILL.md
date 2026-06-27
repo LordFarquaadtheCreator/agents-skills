@@ -47,7 +47,8 @@ Use this immediately after applying to any job. Creates a new row in the spreads
    - `Applied + Called`
    - `Applied + Emailed + Called`
    - `Interview!`
-   - `Done`
+   - `Got the Job!`
+   - `Didn't Get It`
 
 #### Optional parameters (in order, can be omitted)
 
@@ -159,7 +160,7 @@ Updates fields on an existing row. Uses `--matchBy` to find the row and `--updat
 
 *Update multiple fields:*
 ```bash
-/Users/farquaad/agents-data/skills/manage-job/manage-job patch --matchBy '{"companyName":"Acme Corp","link":"https://example.com"}' --update '{"status":"Done","notes":"Rejected"}'
+/Users/farquaad/agents-data/skills/manage-job/manage-job patch --matchBy '{"companyName":"Acme Corp","link":"https://example.com"}' --update '{"status":"Didn't Get It","notes":"Rejected"}'
 ```
 
 #### Output

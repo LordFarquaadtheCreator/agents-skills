@@ -21,7 +21,7 @@ Required args (in order):
   companyName — Name of the company
   link        — Job posting URL (must start with http:// or https://)
   industry    — Tech, Health Care, Retail, Finance, Gig, Other
-  status      — Not Started, Applied Only, Applied + Emailed, Applied + Called, Applied + Emailed + Called, Interview!, Done
+  status      — Not Started, Applied Only, Applied + Emailed, Applied + Called, Applied + Emailed + Called, Interview!, Got the Job!, Didn't Get It
 
 Optional args (in order):
   email — Employer contact email

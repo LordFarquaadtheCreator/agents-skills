@@ -23,7 +23,7 @@ Uses matchBy to find the row, then applies the update fields.
 --update: JSON object with at least one field to change.
   Example: '{"status":"Interview!"}'`,
 	Example: `  manage-job patch --matchBy '{"companyName":"Acme Corp"}' --update '{"status":"Interview!"}'
-  manage-job patch --matchBy '{"companyName":"Acme Corp","link":"https://example.com"}' --update '{"status":"Done","notes":"Rejected"}'`,
+  manage-job patch --matchBy '{"companyName":"Acme Corp","link":"https://example.com"}' --update '{"status":"Didn't Get It","notes":"Rejected"}'`,
 	Run: func(cmd *cobra.Command, args []string) {
 		matchByStr, _ := cmd.Flags().GetString("matchBy")
 		updateStr, _ := cmd.Flags().GetString("update")
