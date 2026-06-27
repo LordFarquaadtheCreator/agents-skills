@@ -14,17 +14,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var ValidIndustries = map[string]bool{
-	"Tech": true, "Health Care": true, "Retail": true,
-	"Finance": true, "Gig": true, "Other": true,
-}
-
-var ValidStatuses = map[string]bool{
-	"Not Started": true, "Applied Only": true, "Applied + Emailed": true,
-	"Applied + Called": true, "Applied + Emailed + Called": true,
-	"Interview!": true, "Done": true,
-}
-
 type sheetsConfig struct {
 	DeploymentID string `yaml:"deploymentId"`
 }
