@@ -31,7 +31,7 @@ The `deploymentId` key in the YAML file is the hash portion of the URL. When a n
 ## Config file format
 
 ```yaml
-deploymentId: AKfycbwRQ52XCi5htaaHLO1Laizu8-pyYFKI0GEWELSnJHsP1CBDc-9OxNlkWGhlG-8l8tDxIQ
+deploymentId: <deploymentId>
 ```
 
 File must exist at `config/sheets-deployment.yaml`. Directory `config/` is gitignored — this file is local only and must be created on each machine.
@@ -42,10 +42,11 @@ File must exist at `config/sheets-deployment.yaml`. Directory `config/` is gitig
 cd /Users/farquaad/agents-data/skills/manage-job && go build -o manage-job .
 ```
 
-The binary is committed to the repo so agents can use it without building.
+The binary should not be committed to the repo.
 
 ## Testing
 
+Make sure to check for regression by running tests. 
 ```bash
 cd /Users/farquaad/agents-data/skills/manage-job && go test ./appscript/ -v
 ```
