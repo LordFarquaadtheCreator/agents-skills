@@ -34,16 +34,16 @@ const (
 func runMCPServer(apiURL string) error {
 	client := &http.Client{Timeout: defaultRequestTimeout}
 
-	server := mcp.NewServer(&mcp.Implementation{Name: "create-image-gen", Version: "1.0.0"}, nil)
+	server := mcp.NewServer(&mcp.Implementation{Name: "create-image", Version: "1.0.0"}, nil)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_loras",
-		Description: "List all available LoRAs and base models from model_card.yaml with all their fields (filename, name, prompt_style, keywords, notes, link, recommended_strength, etc).",
+		Description: "List all available LoRAs and base models from model_card.yaml for the Modal ComfyUI generation workflow. Returns filename, name, prompt_style, keywords, notes, link, recommended_strength, etc.",
 	}, handleListLoras)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "generate_image",
-		Description: "Generate an image using the Modal ComfyUI API. Returns the saved file path and metadata.",
+		Description: "Generate an image using the Modal ComfyUI generation workflow. Returns the saved file path and metadata.",
 	}, func(ctx context.Context, ss *mcp.ServerSession, req *mcp.CallToolParamsFor[GenerateImageInput]) (*mcp.CallToolResultFor[GenerateImageOutput], error) {
 		return handleGenerateImage(ctx, client, apiURL, req.Arguments)
 	})

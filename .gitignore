@@ -9,5 +9,5 @@ skills/*.private
 **/*.private*
 
 # MCP binaries and output
-mcps/queue_processor/queue_processor
-mcps/queue_processor/output/
+mcps/create-image/create-image
+mcps/create-image/output/

@@ -1,4 +1,4 @@
-module mcps/queue_processor
+module mcps/create-image
 
 go 1.23.0
 

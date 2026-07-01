@@ -1,6 +1,6 @@
-# queue_processor
+# create-image
 
-MCP server that exposes image generation tools against the Modal ComfyUI API.
+MCP server that exposes image generation tools using the Modal ComfyUI generation workflow.
 
 ## Files
 
@@ -15,19 +15,19 @@ MCP server that exposes image generation tools against the Modal ComfyUI API.
 
 ## MCP Tools
 
-- `list_loras` — lists all LoRAs from `model_card.yaml` with full metadata.
-- `generate_image` — generates an image via the Modal ComfyUI API. Required: `positive_prompt`, `lora_filename_1/2/3`, `lora_strength_1/2/3`. Optional: `negative_prompt`, `seed`, `steps`, `width`, `height`, `repeat`, `output_filename`.
+- `list_loras` — lists all LoRAs from `model_card.yaml` for the Modal ComfyUI generation workflow, with full metadata.
+- `generate_image` — generates an image via the Modal ComfyUI generation workflow. Required: `positive_prompt`, `lora_filename_1/2/3`, `lora_strength_1/2/3`. Optional: `negative_prompt`, `seed`, `steps`, `width`, `height`, `repeat`, `output_filename`.
 
 ## Build
 
 ```bash
-go build -o queue_processor .
+go build -o create-image .
 ```
 
 ## Docker
 
 ```bash
-docker build -t queue_processor .
+docker build -t create-image .
 ```
 
 ## Run
@@ -35,9 +35,9 @@ docker build -t queue_processor .
 The binary is an MCP server over stdio. It requires `COMFYUI_API_URL` env var.
 
 ```bash
-COMFYUI_API_URL=https://your-modal-api-url ./queue_processor
+COMFYUI_API_URL=https://your-modal-api-url ./create-image
 ```
 
 ## Config
 
-Copy `mcp-config.json` into `~/.codeium/windsurf/mcp_config.json` under `mcpServers`. Set `COMFYUI_API_URL` to your Modal ComfyUI API endpoint.
+Copy `mcp-config.json` into `~/.codeium/windsurf/mcp_config.json` under `mcpServers`. Set `COMFYUI_API_URL` to your Modal ComfyUI generation workflow endpoint.
