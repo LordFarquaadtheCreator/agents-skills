@@ -29,7 +29,7 @@ Show the user what's available. For each MCP:
 When the user picks an MCP:
 
 1. Read its `mcp-config.json` — this is the copy-pastable entry for `mcpServers`
-2. Read `~/.codeium/windsurf/mcp_config.json` — this is where MCP servers are registered
+2. Read `~/.codeium/windsurf/mcp_config.json` OR wherever the agent's platform's mcp config is located — this is where MCP servers are registered
 3. Merge the new MCP entry into the `mcpServers` object
 4. Write the updated config back
 
@@ -48,7 +48,7 @@ cat ~/.codeium/windsurf/mcp_config.json
 
 ## Step 4: Build and verify
 
-If the MCP has a `Dockerfile`, build it:
+If the MCP has a `Dockerfile` and the user wishes to use it via docker, build it:
 ```bash
 cd ~/agents-skills/mcps/<mcp-name> && docker build -t <mcp-name> .
 ```
@@ -62,10 +62,6 @@ Verify the MCP appears in the config:
 ```bash
 cat ~/.codeium/windsurf/mcp_config.json | grep <mcp-name>
 ```
-
-## Config location
-
-MCP config lives at `~/.codeium/windsurf/mcp_config.json`. All MCP servers are registered under the `mcpServers` key.
 
 ## Structure
 
