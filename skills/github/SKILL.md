@@ -15,7 +15,7 @@ You **must** use github mcp for all tasks.
 Each use of the github mcp requires that you run the following command. If the command fails, you cannot use github and must inform the user. Try `gh` command as a backup, see below. 
 
 ```zsh
-/Users/farquaad/.pyenv/shims/python3 /Users/farquaad/.agents/skills/github/set-gh-mcp-token.py <environment>
+/Users/farquaad/agents-data/skills/github/set-gh-token mcp <environment>
 ```
 
 # `GH` CLI
@@ -24,7 +24,7 @@ If the github mcp is inadequate, then you are allowed to use `gh` - github cli t
 The `gh` CLI is a separate tool. Each use of `gh` requires that you run the following command. If the command fails, you cannot use `gh` and must inform the user.
 
 ```zsh
-/Users/farquaad/.pyenv/shims/python3 /Users/farquaad/.agents/skills/github/set-gh-cli-token.py <environment>
+/Users/farquaad/agents-data/skills/github/set-gh-token cli <environment>
 ```
 
 # whoami
