@@ -1,6 +1,13 @@
 # MCPs
 
-All MCP servers are defined here. Each MCP must be in its own folder.
+All MCP servers are defined here as git submodules. Each MCP lives in its own directory.
+
+## Available MCPs
+
+| MCP | Description |
+|---|---|
+| [`create-image`](create-image/) | Image generation via Modal ComfyUI. Exposes `list_loras` and `generate_image` tools. |
+| [`deviantart-mcp`](deviantart-mcp/) | DeviantArt integration. |
 
 ## Structure
 
@@ -8,14 +15,14 @@ All MCP servers are defined here. Each MCP must be in its own folder.
 mcps/
 ├── AGENTS.md              # this file
 └── <mcp-name>/
+    ├── README.md           # comprehensive docs
+    ├── AGENTS.md           # agent-facing instructions
     ├── Dockerfile          # builds and runs the MCP server
-    ├── AGENTS.md           # instructions for this specific MCP
-    └── mcp-config.json     # copy-pastable MCP config entry for mcp_config.json
+    └── mcp-config.json     # copy-pastable MCP config entry
 ```
 
 ## Rules
 
-- Each MCP lives in its own directory under `mcps/`
-- Every MCP must have a `Dockerfile`, `AGENTS.md`, and a `mcp-config.json` snippet
-- `mcp-config.json` contains the copy-pastable entry for `mcpServers` in `~/.codeium/windsurf/mcp_config.json`
-- `AGENTS.md` describes what the MCP does, how to build it, and how to run it
+- Each MCP is a git submodule under `mcps/`
+- Each MCP should have a `README.md` (human-facing), `AGENTS.md` (agent-facing), `Dockerfile`, and `mcp-config.json`
+- When adding a new MCP submodule, update this file and `AGENTS.md` at the repo root
