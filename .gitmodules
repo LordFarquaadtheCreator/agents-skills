@@ -4,6 +4,6 @@
 [submodule "mcps/create-image"]
 	path = mcps/create-image
 	url = git@github.com:LordFarquaadtheCreator/create-image.git
-[submodule "skills/create-yt-summary/tool"]
-	path = skills/create-yt-summary/tool
+[submodule "skills/create-yt-summary/create-yt-summary"]
+	path = skills/create-yt-summary/create-yt-summary
 	url = git@github.com:LordFarquaadtheCreator/create-yt-summary.git

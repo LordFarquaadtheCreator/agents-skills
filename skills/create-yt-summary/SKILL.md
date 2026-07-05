@@ -14,7 +14,7 @@ This skill provides a Go CLI that takes a YouTube URL, fetches the video transcr
 ## Build
 
 ```bash
-cd tool && go build -o create-yt-summary .
+cd create-yt-summary && go build -o create-yt-summary .
 ```
 
 ## Config (environment variables)
@@ -31,7 +31,7 @@ cd tool && go build -o create-yt-summary .
 ### Primary: pass URL as argument
 
 ```bash
-tool/create-yt-summary "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+create-yt-summary/create-yt-summary "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
 The summary is printed to stdout as markdown (with the video title as an H1).
@@ -41,7 +41,7 @@ The summary is printed to stdout as markdown (with the video title as an H1).
 If no argument is given, it reads the clipboard via `pbpaste`:
 
 ```bash
-tool/create-yt-summary
+create-yt-summary/create-yt-summary
 ```
 
 ### As an agent
