@@ -1,9 +1,0 @@
-{
-  "create-image": {
-    "command": "docker",
-    "args": ["run", "--rm", "-i", "-e", "COMFYUI_API_URL", "create-image"],
-    "env": {
-      "COMFYUI_API_URL": "YOUR_MODAL_COMFYUI_API_URL"
-    }
-  }
-}

@@ -1,3 +1,6 @@
 [submodule "mcps/deviantart-mcp"]
 	path = mcps/deviantart-mcp
 	url = git@github.com:LordFarquaadtheCreator/deviantart-mcp.git
+[submodule "mcps/create-image"]
+	path = mcps/create-image
+	url = git@github.com:LordFarquaadtheCreator/create-image.git
