@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS_SRC="$SCRIPT_DIR/skills"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SKILLS_SRC="$REPO_ROOT/skills"
 
 if [ $# -lt 1 ]; then
   echo "Usage: $0 <target-dir>"
