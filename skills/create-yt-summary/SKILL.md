@@ -9,7 +9,8 @@ This skill provides a Go CLI that takes a YouTube URL, fetches the video transcr
 
 ## Prerequisites
 
-- `yt-dlp` installed and on `$PATH` (`brew install yt-dlp`)
+- **yt-dlp** installed and on `$PATH` (`brew install yt-dlp`)
+- Go toolchain (for building)
 
 ## Build
 
@@ -19,37 +20,24 @@ cd create-yt-summary && go build -o create-yt-summary .
 
 ## Config (environment variables)
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `LLM_MODEL` | yes | — | Model name (e.g. `gpt-4o`, `llama-3`) |
-| `LLM_BASE_URL` | no | `http://localhost:1234/v1` | API base URL |
-| `LLM_API_KEY` | no | `lm-studio` | API key |
-| `SUMMARY_PROMPT` | no | `"Summarize the following YouTube video transcript..."` | System prompt |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `LLM_MODEL` | yes | Model name (e.g. `gpt-4o`, `llama-3`) |
+| `LLM_BASE_URL` | yes | API base URL (e.g. `http://localhost:1234`) — code appends `/v1/chat/completions` |
+| `LLM_API_KEY` | no | API key; omitted from request if not set |
+| `SUMMARY_PROMPT` | no | System prompt for summarization |
 
 ## Usage
-
-### Primary: pass URL as argument
 
 ```bash
 create-yt-summary/create-yt-summary "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
-The summary is printed to stdout as markdown (with the video title as an H1).
-
-### Fallback: URL from clipboard (macOS)
-
-If no argument is given, it reads the clipboard via `pbpaste`:
-
-```bash
-create-yt-summary/create-yt-summary
-```
-
-### As an agent
-
-Just build the binary once, then invoke it with the URL. Read the stdout for the summary and present it to the user. If it fails, read stderr for the error.
+The summary is printed to stdout as markdown (video title as H1). Errors go to stderr.
 
 ## Notes
 
-- Only English captions are supported (manual or auto-generated)
-- Transcripts are truncated to 12,000 characters before the LLM call
-- Pure stdlib Go — zero dependencies beyond the Go toolchain and `yt-dlp`
+- **English only** — the code hardcodes `"en"` subtitles (manual first, auto-generated as fallback)
+- **OpenAI API format only** — calls `/chat/completions`; Anthropic, Gemini, etc. need a compatible proxy
+- Requires `yt-dlp` on `$PATH` — all transcript fetching delegates to it
+- Pure stdlib Go — zero external dependencies beyond the Go toolchain and yt-dlp
