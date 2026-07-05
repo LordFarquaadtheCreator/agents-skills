@@ -38,6 +38,15 @@ Usage: ./commands/link-skills.sh <target-dir>
 - Skips any existing non-symlink entries (won't overwrite real directories).
 - Removes stale symlinks that point to nonexistent skill directories.
 
+> **Hermes note:** Hermes uses a proprietary skill format (extra metadata fields in `SKILL.md`, category directories with `DESCRIPTION.md`, etc.) that is incompatible with the open skills format in this repo. Symlinking or copying skills from this repo into `~/.hermes/skills/` will not work.
+>
+> Instead, add `$PWD/skills` to Hermes' `external_dirs` config in `~/.hermes/config.yaml`:
+> ```yaml
+> skills:
+>   external_dirs: ["/absolute/path/to/agents-skills/skills"]
+> ```
+> Hermes will then load these skills alongside its bundled ones.
+
 ---
 
 ## Updating these docs
