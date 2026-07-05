@@ -10,4 +10,4 @@ skills/*.private
 
 # MCP binaries and output
 mcps/create-image/create-image
-mcps/create-image/output/
+mcps/create-image/output/.restored-create-image/
