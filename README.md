@@ -15,8 +15,17 @@ This scaffolds a `skills/<name>/` directory with `SKILL.md` and optionally `agen
 Skills are not auto-discovered. Use `link-skills.sh` to symlink all skills into a target agent's skill bank:
 
 ```zsh
-./commands/link-skills.sh /path/to/app/skills
+# For Zed (global — available in all projects)
+./commands/link-skills.sh ~/.agents/skills
+
+# For Devin
+./commands/link-skills.sh ~/.devin/skills
+
+# For Claude Code
+./commands/link-skills.sh ~/.claude/skills
 ```
+
+**Zed note:** Zed discovers skills from `~/.agents/skills/` (global, available in all projects) or `<project>/.agents/skills/` (project-local). Run `link-skills.sh ~/.agents/skills` to make all skills available in every Zed project.
 
 This is intentional — you control exactly which skills each app can use. Two apps can have different sets of skills without one polluting the other.
 

@@ -30,13 +30,15 @@ Usage: ./commands/link-skills.sh <target-dir>
 
 | Argument | Required | Description |
 |---|---|---|
-| `target-dir` | Yes | Path to the agent's skills directory (e.g., `~/.claude/skills`, `~/.devin/skills`). |
+| `target-dir` | Yes | Path to the agent's skills directory (e.g., `~/.agents/skills` for Zed, `~/.devin/skills` for Devin, `~/.claude/skills` for Claude Code). |
 
 **What it does:**
 - Creates the target directory if it doesn't exist.
 - Symlinks each skill directory from `skills/` into the target.
 - Skips any existing non-symlink entries (won't overwrite real directories).
 - Removes stale symlinks that point to nonexistent skill directories.
+
+> **Zed note:** Zed discovers skills from `~/.agents/skills/` (global, available in all projects) or `<project>/.agents/skills/` (project-local). Run this script with `~/.agents/skills` as the target to make all skills available in every Zed project.
 
 > **Hermes note:** Hermes uses a proprietary skill format (extra metadata fields in `SKILL.md`, category directories with `DESCRIPTION.md`, etc.) that is incompatible with the open skills format in this repo. Symlinking or copying skills from this repo into `~/.hermes/skills/` will not work.
 >
