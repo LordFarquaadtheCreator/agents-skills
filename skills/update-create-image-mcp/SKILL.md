@@ -74,8 +74,26 @@ cd "$REPO_ROOT/mcps/create-image" && docker build -t create-image .
 cd "$REPO_ROOT" && git add mcps/create-image && git commit -m "chore: update create-image submodule"
 ```
 
+## Sync all repos that reference this submodule
+
+The `create-image` submodule is referenced from multiple repos. After pushing changes to the `create-image` source repo, update the submodule pointer in every repo that includes it:
+
+1. **`agents-skills`** — `mcps/create-image` (the canonical skill repo)
+2. **`senor-modal-apps`** — `create-image` (the app repo)
+
+For each repo:
+
+```bash
+cd <repo_root> && git submodule update --remote <submodule_path>
+git add <submodule_path> && git commit -m "update create-image submodule"
+git push origin main
+```
+
+If you made changes directly inside the submodule working directory (not via `update --remote`), commit and push from inside the submodule first, then update the pointer in each parent repo.
+
 ## Troubleshooting
 
 - If the submodule isn't initialized: `cd "$REPO_ROOT" && git submodule init mcps/create-image`
 - If the submodule is on a detached HEAD, that's normal after `update --remote`
 - If `model_card.yaml` or `mcp-config.json` changed, let the user know — they may need to update their local config
+- If changes were made inside the submodule, always push the submodule repo first, then update and push parent repos
