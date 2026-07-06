@@ -6,4 +6,4 @@
 	url = git@github.com:LordFarquaadtheCreator/create-image.git
 [submodule "skills/youtube-transcript/youtube-transcript"]
 	path = skills/youtube-transcript/youtube-transcript
-	url = git@github.com:LordFarquaadtheCreator/create-yt-summary.git
+	url = git@github.com:LordFarquaadtheCreator/youtube-transcript.git
