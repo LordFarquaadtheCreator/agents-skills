@@ -1,9 +1,9 @@
 ---
-name: create-yt-summary
+name: youtube-transcript
 description: Fetch YouTube video transcripts via yt-dlp. Supports multi-language fallback, text/SRT/VTT/JSON3 output, playlists, search, metadata extraction, and file-based caching. Use this when the user wants to get or read a YouTube video transcript.
 ---
 
-# create-yt-summary
+# youtube-transcript
 
 Go CLI that wraps yt-dlp to fetch YouTube transcripts. Outputs plain text, SRT, VTT, or JSON3. Includes metadata (title, channel, duration, chapters, etc.) and a 7-day file cache.
 
@@ -15,38 +15,38 @@ Go CLI that wraps yt-dlp to fetch YouTube transcripts. Outputs plain text, SRT, 
 ## Build
 
 ```bash
-cd create-yt-summary && go build -o create-yt-summary .
+cd youtube-transcript && go build -o youtube-transcript .
 ```
 
 ## Usage
 
 ```bash
 # Basic transcript (English, plain text)
-create-yt-summary/create-yt-summary "https://www.youtube.com/watch?v=..."
+youtube-transcript/youtube-transcript "https://www.youtube.com/watch?v=..."
 
 # Multi-language fallback
-create-yt-summary/create-yt-summary -lang de,en "https://www.youtube.com/watch?v=..."
+youtube-transcript/youtube-transcript -lang de,en "https://www.youtube.com/watch?v=..."
 
 # SRT format
-create-yt-summary/create-yt-summary -format srt "https://www.youtube.com/watch?v=..."
+youtube-transcript/youtube-transcript -format srt "https://www.youtube.com/watch?v=..."
 
 # List available subtitle languages
-create-yt-summary/create-yt-summary -list-subs "https://www.youtube.com/watch?v=..."
+youtube-transcript/youtube-transcript -list-subs "https://www.youtube.com/watch?v=..."
 
 # Playlist (one transcript per video)
-create-yt-summary/create-yt-summary "https://www.youtube.com/playlist?list=..."
+youtube-transcript/youtube-transcript "https://www.youtube.com/playlist?list=..."
 
 # Search (top N results)
-create-yt-summary/create-yt-summary "ytsearch5:golang tutorial"
+youtube-transcript/youtube-transcript "ytsearch5:golang tutorial"
 
 # JSON output with metadata + content
-create-yt-summary/create-yt-summary -json "https://www.youtube.com/watch?v=..."
+youtube-transcript/youtube-transcript -json "https://www.youtube.com/watch?v=..."
 
 # Auth-gated content
-create-yt-summary/create-yt-summary -cookies cookies.txt "https://www.youtube.com/watch?v=..."
+youtube-transcript/youtube-transcript -cookies cookies.txt "https://www.youtube.com/watch?v=..."
 
 # Clear cache
-create-yt-summary/create-yt-summary -clear-cache
+youtube-transcript/youtube-transcript -clear-cache
 ```
 
 ## Flags
