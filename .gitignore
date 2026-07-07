@@ -12,3 +12,4 @@ skills/*.private
 # MCP binaries and output
 mcps/create-image/create-image
 mcps/create-image/output/.restored-create-image/
+mcps/cover-letter-writter/cover-letter-writter

@@ -10,3 +10,6 @@
 [submodule "mcps/create-video"]
 	path = mcps/create-video
 	url = https://github.com/LordFarquaadtheCreator/create-video.git
+[submodule "mcps/cover-letter-writter"]
+	path = mcps/cover-letter-writter
+	url = https://github.com/LordFarquaadtheCreator/cover-letter-writter.git
