@@ -7,3 +7,6 @@
 [submodule "skills/youtube-transcript/youtube-transcript"]
 	path = skills/youtube-transcript/youtube-transcript
 	url = git@github.com:LordFarquaadtheCreator/youtube-transcript.git
+[submodule "mcps/create-video"]
+	path = mcps/create-video
+	url = https://github.com/LordFarquaadtheCreator/create-video.git
