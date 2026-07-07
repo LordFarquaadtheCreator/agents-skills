@@ -10,3 +10,7 @@ Reusable shell scripts live in [`commands/`](commands/). See [`commands/AGENTS.m
 
 - [`create-skill.sh`](commands/create-skill.sh) — scaffold a new skill
 - [`link-skills.sh`](commands/link-skills.sh) — symlink skills into a target agent's skills directory (e.g. `~/.agents/skills/` for Zed, `~/.devin/skills/` for Devin)
+
+## MCPs
+
+MCP servers live in [`mcps/`](mcps/) as git submodules. See [`mcps/AGENTS.md`](mcps/AGENTS.md) for the full list and per-MCP docs.
