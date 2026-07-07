@@ -6,8 +6,10 @@ All MCP servers are defined here as git submodules. Each MCP lives in its own di
 
 | MCP | Description |
 |---|---|
-| [`create-image`](create-image/) | Image generation via Modal ComfyUI. Exposes `list_loras` and `generate_image` tools. |
-| [`deviantart-mcp`](deviantart-mcp/) | DeviantArt integration. |
+| [`create-image`](create-image/) | Image generation via Modal ComfyUI. Exposes `list_loras`, `list_base_models`, and `generate_image` tools. |
+| [`create-video`](create-video/) | Video generation via Modal LTX-2.3. Exposes `generate_video` tool (image → MP4). |
+| [`cover-letter-writter`](cover-letter-writter/) | Styled PDF cover letter generation with profile CRUD and history. Exposes 7 tools. |
+| [`deviantart-mcp`](deviantart-mcp/) | DeviantArt API integration — browse, search, galleries, collections, messages. |
 
 ## Structure
 
