@@ -26,14 +26,14 @@ Browse and interact with DeviantArt via the `deviantart-mcp` MCP server. OAuth-b
 | `browse_user_literature` | User's literature |
 
 ### Deviation (single artwork)
-| Tool | What it does |
-|---|---|
-| `deviation_get` | Fetch deviation by ID |
-| `deviation_content` | Get content |
-| `deviation_download` | Get download link |
-| `deviation_metadata` | Get metadata |
-| `deviation_whofaved` | Who faved it |
-| `deviation_embedded_content` | Embedded content |
+| Tool | What it does | Auth? |
+|---|---|---|
+| `deviation_get` | Fetch deviation metadata by UUID | public |
+| `deviation_content` | Full content (journal body, literature text) | some require auth |
+| `deviation_download` | Download info (URL, dimensions, filesize) | auth required |
+| `deviation_metadata` | Metadata for up to 50 deviations per query | public |
+| `deviation_whofaved` | Users who favorited a deviation | public |
+| `deviation_embedded_content` | Content embedded in a deviation (journals/literature) | public |
 
 ### Gallery (user's gallery)
 | Tool | What it does |
@@ -64,8 +64,8 @@ Browse and interact with DeviantArt via the `deviantart-mcp` MCP server. OAuth-b
 
 ## Auth
 
-- Public browsing (browse_*): client credentials — works out of box
-- User actions (fave, collections CRUD, gallery CRUD, messages): authorization-code flow — requires OAuth login
+- Public browsing (most browse_*, deviation_get, deviation_metadata, deviation_whofaved, deviation_embedded_content, public gallery/collections): client credentials — works out of box
+- User actions (fave/unfave, collections create/delete, gallery folder create/delete, messages_*, deviation_download, some deviation_content): authorization-code flow — requires OAuth login
 
 If user actions fail with auth error, Fahad needs to authenticate. Check MCP server logs for auth URL.
 

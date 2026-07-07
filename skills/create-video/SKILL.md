@@ -20,17 +20,22 @@ Only one tool: `generate_video`
 
 | Param | Required | Default | Notes |
 |---|---|---|---|
-| `image_base64` | yes | — | Base64-encoded PNG source image |
-| `prompt` | yes | — | Motion description (e.g. "slow pan right, waves crashing") |
-| `negative_prompt` | no | `worst quality, inconsistent motion...` | What to avoid |
-| `seed` | no | 42 | Reproducibility |
+| `image_base64` | yes | — | Base64-encoded PNG to animate. Generate one first with create-image MCP. |
+| `prompt` | yes | — | Motion prompt (e.g. "slow smile, gentle head turn, hair blowing in wind") |
+| `negative_prompt` | no | `""` | What to avoid (e.g. "blurry, jittery, distorted") |
+| `seed` | no | 42 | Random seed for reproducibility |
 | `num_frames` | no | 121 | 121 ≈ 5s at 24fps |
-| `num_inference_steps` | no | 30 | 30 full model, 8 distilled |
-| `output_mode` | no | file | `file`, `base64`, `both` |
+| `guidance_scale` | no | 3.0 | Classifier-free guidance. Higher = more adherence to prompt. 1.0 = no guidance. |
+| `num_inference_steps` | no | 30 | Denoising steps. 30 for full model, 8 for distilled. |
+| `output_filename` | no | auto | Custom filename (without extension). `.mp4` is forced. |
+| `output_mode` | no | `file` | `file` (save to disk), `base64` (return inline as VideoContent), `both` |
+| `output_dir` | no | `./output.private/mcp_output` | Directory for saved videos when mode is file/both |
+| `poll_interval_ms` | no | 5000 | Polling interval in milliseconds |
+| `poll_timeout_sec` | no | 600 | Max time to wait for generation in seconds |
 
 ## Timing
 
-Async: submit → poll until ready. H100 GPU. 121 frames at 768x512 takes ~60-120s. Cold start downloads ~46GB on first run — may take minutes.
+Async: submit → poll until ready. H100 GPU. 121 frames at 768x512 takes ~60-120s. Cold start downloads ~46GB on first run — may take minutes. Default poll timeout 600s (10 min) — increase if cold start expected.
 
 ## Motion prompt tips
 

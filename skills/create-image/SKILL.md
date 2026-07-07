@@ -25,15 +25,17 @@ Generate images via the `create-image` MCP server. Backed by Modal-hosted ComfyU
 
 | Param | Required | Default | Notes |
 |---|---|---|---|
-| `positive_prompt` | yes | — | What to generate |
-| `lora_filename_1` / `_2` / `_3` | yes | — | From list_loras. Unused slots = any LoRA at 0.0 |
+| `positive_prompt` | yes | — | What to generate. Be descriptive — style, subject, composition, lighting. |
+| `lora_filename_1` / `_2` / `_3` | yes | — | From list_loras. Must exist on ComfyUI volume. Unused slots = any LoRA at 0.0 |
 | `lora_strength_1` / `_2` / `_3` | yes | — | 0.0–1.0. Use recommended_strength as starting point. |
-| `negative_prompt` | no | `""` | What to avoid |
-| `seed` | no | random | For reproducibility |
-| `steps` | no | 16 | Sampling steps |
-| `width` / `height` | no | 720 / 1024 | Image dimensions |
-| `repeat` | no | 1 | Batch with incrementing seeds |
-| `output_filename` | no | `mcp_output` | `.png` appended, `_vN` for repeats |
+| `negative_prompt` | no | `""` | What to avoid (e.g. "blurry, low quality, deformed") |
+| `seed` | no | random | Fixed seed for reproducibility. For repeat>1, increments by 10 per iteration. |
+| `steps` | no | 16 | Sampling steps. Higher = more detail, slower. |
+| `width` / `height` | no | 720 / 1024 | Image dimensions in pixels |
+| `repeat` | no | 1 | Generate N images with incrementing seeds. Filenames get `_v2`, `_v3` suffixes. |
+| `output_filename` | no | auto | Custom filename (without extension). `.png` is forced. |
+| `output_mode` | no | `file` | `file` (save to disk), `base64` (return inline as ImageContent), `both` |
+| `output_dir` | no | `./output.private/mcp_output` | Directory for saved images when mode is file/both |
 
 ## Timing
 
@@ -41,7 +43,7 @@ Generate images via the `create-image` MCP server. Backed by Modal-hosted ComfyU
 
 ## Output
 
-Saved to `./output/mcp_output/<filename>.png` relative to the MCP server's cwd.
+Saved to `./output.private/mcp_output/<filename>.png` relative to the MCP server's cwd (configurable via `output_dir`). In `base64` or `both` mode, also returned inline as ImageContent.
 
 ## Tips
 
