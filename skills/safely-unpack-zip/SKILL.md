@@ -11,6 +11,34 @@ allowed-tools:
 
 Unpack all zip files in $ARGUMENTS (default: ~/Downloads) and serve them over http://127.0.0.1:8080 — entirely inside a Docker container. Nothing is extracted locally.
 
+## Colima resource notes
+
+Colima runs Docker in a Linux VM on macOS. The VM has a sparse virtual disk (grows on demand, does not reserve full size on host) and fixed RAM/CPU allocation.
+
+Current profile defaults (verify with `colima list`):
+- Disk: 100GiB ceiling (sparse — only grows as containers write data)
+- Memory: 8GiB RAM
+- CPUs: 2
+
+Practical limits:
+- Extracted zip contents must fit within free VM disk space. Check with `docker system df` if unsure.
+- unzip is light on RAM — won't hit 8GiB ceiling unless zips are very large.
+- No per-zip size guard in this workflow. If extraction fails silently, suspect VM disk exhaustion.
+
+To reclaim VM disk space (removes unused images, stopped containers, dangling volumes):
+```
+docker system prune -a
+```
+
+## "Tear it down"
+
+When Fahad says "tear it down", stop everything and return all storage:
+1. Kill the serving container: `docker ps -q --filter "publish=8080" | xargs docker kill`
+2. Prune all unused Docker data: `docker system prune -a -f`
+3. Stop Colima: `colima stop`
+
+This frees VM disk back to baseline (only images/layers you keep remain). Colima's sparse disk shrinks on the host as the VM releases space.
+
 ## Steps
 
 1. Ensure Colima is running. If not, start it:
@@ -49,3 +77,4 @@ Unpack all zip files in $ARGUMENTS (default: ~/Downloads) and serve them over ht
 - Each zip unpacks into its own subdirectory named after the zip (minus `.zip`).
 - Server is localhost-only (`127.0.0.1:8080`), not exposed to the network.
 - Before running, group related files into zips (e.g., `Chapter 1.pdf` + `Chapter 2.pdf` → `Chapters.zip`). Delete source files after zipping.
+- If extraction fails, check `docker system df` — VM disk may be full. Run `docker system prune -a` to reclaim.
