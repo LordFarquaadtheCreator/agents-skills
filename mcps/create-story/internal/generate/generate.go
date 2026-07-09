@@ -60,9 +60,9 @@ const (
 	minFontSize          = 6.0 * scale
 	previewBlurSigma     = 25.0
 
-	fontRegular = "/System/Library/Fonts/Supplemental/Arial.ttf"
-	fontBold    = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
-	fontItalic  = "/System/Library/Fonts/Supplemental/Arial Italic.ttf"
+	fontRegular = "/System/Library/Fonts/Supplemental/AppleMyungjo.ttf"
+	fontBold    = "/System/Library/Fonts/Supplemental/AppleMyungjo.ttf"
+	fontItalic  = "/System/Library/Fonts/Supplemental/AppleMyungjo.ttf"
 )
 
 type fontFamily struct {
@@ -282,9 +282,10 @@ func savePNG(img image.Image, path string) error {
 }
 
 type pageItem struct {
-	word, face  string
-	isParaBreak bool
-	isLineBreak bool
+	word, face    string
+	isParaBreak   bool
+	isLineBreak   bool
+	noSpaceBefore bool
 }
 
 func flattenWords(story string) []pageItem {
@@ -296,21 +297,32 @@ func flattenWords(story string) []pageItem {
 		}
 		for _, ln := range strings.Split(block, "\n") {
 			if ln == "" {
-				all = append(all, pageItem{"", "", false, true})
+				all = append(all, pageItem{"", "", false, true, false})
 				continue
 			}
 			segs := parseMarkdown(ln)
-			for _, s := range segs {
-				for _, w := range strings.Fields(s.text) {
-					all = append(all, pageItem{w, s.face, false, false})
+			for segIdx, s := range segs {
+				words := strings.Fields(s.text)
+				if len(words) == 0 {
+					continue
+				}
+				noSpace := segIdx > 0 &&
+					!strings.HasSuffix(segs[segIdx-1].text, " ") &&
+					!strings.HasPrefix(s.text, " ")
+				for wIdx, w := range words {
+					pi := pageItem{w, s.face, false, false, false}
+					if noSpace && wIdx == 0 {
+						pi.noSpaceBefore = true
+					}
+					all = append(all, pi)
 				}
 			}
-			all = append(all, pageItem{"", "", false, true})
+			all = append(all, pageItem{"", "", false, true, false})
 		}
 		if len(all) > 0 && all[len(all)-1].isLineBreak {
 			all = all[:len(all)-1]
 		}
-		all = append(all, pageItem{"", "", true, false})
+		all = append(all, pageItem{"", "", true, false, false})
 	}
 	return all
 }
@@ -378,7 +390,7 @@ func renderPageImage(ff *fontFamily, srcImg image.Image, story, title string, pa
 			f := ff.face(it.face, try)
 			wW := measureWith(f, it.word)
 			testW := lineW
-			if prevWord {
+			if prevWord && !it.noSpaceBefore {
 				testW += measureWith(f, " ")
 			}
 			testW += wW
@@ -440,7 +452,7 @@ func renderPageImage(ff *fontFamily, srcImg image.Image, story, title string, pa
 			dc.SetFontFace(f)
 			dc.DrawString(w.word, x, ty)
 			x += measureWith(f, w.word)
-			if j < len(lineWords)-1 {
+			if j < len(lineWords)-1 && !lineWords[j+1].noSpaceBefore {
 				x += measureWith(f, " ")
 			}
 		}
@@ -467,7 +479,7 @@ func renderPageImage(ff *fontFamily, srcImg image.Image, story, title string, pa
 		f := faceFor(it.face)
 		wW := measureWith(f, it.word)
 		testW := lineW
-		if len(lineWords) > 0 {
+		if len(lineWords) > 0 && !it.noSpaceBefore {
 			testW += measureWith(f, " ")
 		}
 		testW += wW
@@ -482,11 +494,13 @@ func renderPageImage(ff *fontFamily, srcImg image.Image, story, title string, pa
 	}
 	flush()
 
-	// footer
+	// footer — fixed size, not scaled with body text
+	footerSize := 14.0 * scale
+	footerFace := ff.face("", footerSize)
 	label := fmt.Sprintf("%s #%d", title, pageNum)
-	dc.SetFontFace(faceReg)
+	dc.SetFontFace(footerFace)
 	dc.SetRGB(100.0/255, 100.0/255, 100.0/255)
-	lw := measureWith(faceReg, label)
+	lw := measureWith(footerFace, label)
 	dc.DrawString(label, textX+maxW-lw, pageHPx-textPad)
 
 	return dc.Image()
