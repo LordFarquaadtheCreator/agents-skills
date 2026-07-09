@@ -11,6 +11,7 @@ All MCP servers are defined here. Each MCP lives in its own directory. This repo
 | [`cover-letter-writter`](cover-letter-writter/) | Styled PDF cover letter generation with profile CRUD and history. Exposes 7 tools. |
 | [`create-story`](create-story/) | Illustrated PDF + PNG generation from image file paths + markdown text. Exposes `generate_story_pdf` tool. Renders pages via gg, outputs to ~/Desktop/<title>/. Stateless. |
 | [`generate-story`](generate-story/) | RAG system for story generation. Scrapes blogs (Blogger, WordPress, DeviantArt), embeds into local vector store, generates stories via LLM. Exposes 9 tools: `generate_story`, `debug_query`, `scrape_blogger`, `scrape_wordpress`, `scrape_deviantart`, `process_documents`, `load_vector_db`, `save_vector_db`, `list_vector_dbs`. Requires `config.yaml` (gitignored) with LLM provider config. |
+| [`manage-job`](manage-job/) | Job application tracking via Google Sheets backend. Exposes 4 tools: `track_job`, `get_jobs`, `patch_job`, `delete_job`. Proxies to deployed Apps Script web app. Requires `SHEETS_DEPLOYMENT_ID` env var. |
 | [`deviantart-mcp`](deviantart-mcp/) | **[IN PROGRESS — not ready]** DeviantArt API integration — browse, search, galleries, collections, messages. |
 
 ## Structure
