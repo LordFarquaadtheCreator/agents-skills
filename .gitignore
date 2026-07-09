@@ -13,3 +13,7 @@ skills/*.private
 mcps/create-image/create-image
 mcps/create-image/output/.restored-create-image/
 mcps/cover-letter-writter/cover-letter-writter
+mcps/create-story/create-story
+
+# mcp-call built binary
+skills/mcp-bridge/scripts/mcp-call/mcp-call
