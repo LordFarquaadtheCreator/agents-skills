@@ -13,4 +13,4 @@ Reusable shell scripts live in [`commands/`](commands/). See [`commands/AGENTS.m
 
 ## MCPs
 
-MCP servers live in [`mcps/`](mcps/) as git submodules. See [`mcps/AGENTS.md`](mcps/AGENTS.md) for the full list and per-MCP docs.
+MCP servers live in [`mcps/`](mcps/) as git submodules. This repo is the **canonical home** for all MCPs — other repos (e.g. `senor-modal-apps`) symlink to `mcps/<name>` rather than tracking their own submodule pointers. See [`mcps/AGENTS.md`](mcps/AGENTS.md) for the full list and per-MCP docs.

@@ -1,13 +1,13 @@
 # MCPs
 
-All MCP servers are defined here as git submodules. Each MCP lives in its own directory.
+All MCP servers are defined here. Each MCP lives in its own directory. This repo (`agents-skills/mcps/`) is the **canonical home** for every MCP — other repos (e.g. `senor-modal-apps`) symlink to these directories rather than tracking separate submodule pointers.
 
 ## Available MCPs
 
 | MCP | Description |
 |---|---|
-| [`create-image`](create-image/) | Image generation via Modal ComfyUI. Exposes `list_loras`, `list_base_models`, and `generate_image` tools. |
-| [`create-video`](create-video/) | Video generation via Modal LTX-2.3. Exposes `generate_video` tool (image → MP4). |
+| [`create-image`](create-image/) | Image generation via Modal ComfyUI. Exposes `list_loras`, `list_base_models`, and `generate_image` tools. Canonical repo — `senor-modal-apps/create-image` symlinks here. |
+| [`create-video`](create-video/) | Video generation via Modal LTX-2.3. Exposes `generate_video` tool (image → MP4). Canonical repo — `senor-modal-apps/create-video` symlinks here. |
 | [`cover-letter-writter`](cover-letter-writter/) | Styled PDF cover letter generation with profile CRUD and history. Exposes 7 tools. |
 | [`deviantart-mcp`](deviantart-mcp/) | **[IN PROGRESS — not ready]** DeviantArt API integration — browse, search, galleries, collections, messages. |
 
@@ -25,6 +25,7 @@ mcps/
 
 ## Rules
 
-- Each MCP is a git submodule under `mcps/`
+- Each MCP is a git submodule under `mcps/` — this is the canonical copy.
+- Other repos that need an MCP should symlink to `~/agents-skills/mcps/<name>` and gitignore the symlink path. Do not track separate submodule pointers in consumer repos.
 - Each MCP should have a `README.md` (human-facing), `AGENTS.md` (agent-facing), `Dockerfile`, and `mcp-config.json`
 - When adding a new MCP submodule, update this file and `AGENTS.md` at the repo root
