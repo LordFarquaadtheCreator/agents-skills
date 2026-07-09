@@ -1,6 +1,6 @@
 # create-story
 
-MCP server that generates illustrated PDF books from base64 images and text. The agent provides images (base64-encoded PNG or JPEG) and story text per page — the server builds a PDF with image-left, text-right layout and muted background colors extracted from each image.
+MCP server that generates illustrated PDF books with per-page PNG images from image files and text. The agent provides absolute file paths to PNG/JPEG images and markdown text per page — the server renders each page as a PNG (image left, text right, muted background extracted from the image), then assembles them into a PDF.
 
 ## Architecture
 
@@ -9,40 +9,47 @@ Agent (MCP client over stdio)
   │
   ▼
 create-story (Go binary)
-  └── generate_story_pdf  ── decodes base64 images, builds PDF, writes to disk
+  └── generate_story_pdf
+        ├── load Arial TTF fonts from system
+        ├── resolve ~/Desktop/<title>/ (collision handling)
+        ├── per page:
+        │     ├── decode image from file path
+        │     ├── extract dominant color → lighten for background
+        │     ├── render via fogleman/gg (image left, text right, footer)
+        │     ├── save PNG (<title>.<n>.png)
+        │     └── embed PNG into PDF
+        └── write PDF (<title>.pdf)
 ```
 
-Stateless — no profiles, no history, no disk state. The agent provides everything inline.
+Stateless — no profiles, no history, no disk state.
 
 ## MCP Tool
 
 ### `generate_story_pdf`
 
-Generate a PDF book from base64 images and text. Each page: image left, story text right, muted background extracted from the image.
-
 | Param | Type | Required | Description |
 |---|---|---|---|
-| `title` | string | yes | Story title shown in the page footer |
-| `pages` | array | yes | Array of pages — each has `image` (base64 PNG/JPEG, no data URI prefix) and `text` |
-| `outputDir` | string | no | Directory to save the PDF. Defaults to `~/Downloads`. |
-| `filename` | string | no | PDF filename. Defaults to `<title>.pdf`. |
-| `fontSize` | number | no | Max body font size in points. Binary-searched down to fit text on page. Defaults to 30. |
-| `lightenFactor` | number | no | How muted the background (0.0=original, 1.0=white). Defaults to 0.8. |
+| `title` | string | yes | Story title. Used as output dir name, PDF filename, and footer label. |
+| `pages` | array | yes | Array of pages — each has `image` (absolute file path) and `text` (markdown) |
+| `outputDir` | string | no | Base directory. A `<title>/` subdir is created inside. Defaults to `~/Desktop`. |
+| `fontSize` | number | no | Max body font size in points. Binary-searched down to fit. Defaults to 30. |
+| `lightenFactor` | number | no | Background muting (0.0=original, 1.0=white). Defaults to 0.8. |
 
-Each page object:
+Each page:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `image` | string | yes | Base64-encoded PNG or JPEG (no `data:image/png;base64,` prefix) |
-| `text` | string | yes | Story text. Markdown supported: `**bold**`, `*italic*`, `\n` for line breaks, `\n\n` for paragraph breaks. |
+| `image` | string | yes | Absolute file path to a PNG or JPEG image |
+| `text` | string | yes | Story text. Markdown: `**bold**`, `*italic*`, `\n` line breaks, `\n\n` paragraph breaks |
 
 Returns:
 
 ```json
 {
-  "outputPath": "/Users/fahad/Downloads/My Story.pdf",
-  "pageCount": 10,
-  "filename": "My Story.pdf"
+  "outputDir": "/Users/fahad/Desktop/My Story",
+  "pdfPath": "/Users/fahad/Desktop/My Story/My Story.pdf",
+  "pngPaths": ["/Users/fahad/Desktop/My Story/My Story.1.png"],
+  "pageCount": 1
 }
 ```
 
@@ -64,31 +71,24 @@ docker build -t create-story .
 ./create-story
 ```
 
-No env vars required. The server starts immediately over stdio.
+No env vars required. Stdio transport.
 
 ## Tests
 
 ```bash
-go test ./... -count=1
+go test ./... -count=1 -v
 ```
-
-Tests across 2 packages:
-
-| Package | Tests cover |
-|---|---|
-| `internal/generate` | Empty pages, PDF written, multiple pages, default filename, nested output dir, invalid base64, markdown formatting, custom font size |
-| `internal/mcpserver` | Valid generation, missing title, no pages, missing image, missing text, multiple pages |
 
 ## MCP Config
 
 Copy `mcp-config.json` into your agent's MCP config.
 
-## Files
+## Dependencies
 
-| File | Purpose |
-|---|---|
-| `main.go` | Entry point |
-| `internal/mcpserver/server.go` | MCP server setup, tool handler, validation |
-| `internal/generate/generate.go` | PDF generation: base64 decode, color extraction, text layout, page rendering |
-| `Dockerfile` | Multi-stage Go build → Alpine runtime |
-| `mcp-config.json` | MCP config snippet |
+- `github.com/fogleman/gg` — 2D graphics rendering
+- `github.com/go-pdf/fpdf` — PDF assembly
+- `github.com/golang/freetype/truetype` — TTF font parsing
+- `golang.org/x/image/draw` — image scaling
+- `github.com/modelcontextprotocol/go-sdk/mcp` — MCP SDK
+
+macOS only — loads Arial TTF fonts from `/System/Library/Fonts/Supplemental/`.
