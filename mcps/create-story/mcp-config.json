@@ -1,0 +1,10 @@
+{
+  "create-story": {
+    "command": "docker",
+    "args": ["run", "--rm", "-i", "-v", "create-story-output:/output", "create-story"]
+  },
+  "create-story-stdio": {
+    "command": "/Users/farquaad/agents-skills/mcps/create-story/create-story",
+    "args": []
+  }
+}
