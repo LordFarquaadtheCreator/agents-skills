@@ -16,6 +16,6 @@
 [submodule "mcps/create-story"]
 	path = mcps/create-story
 	url = git@github.com:LordFarquaadtheCreator/create-story.git
-[submodule "mcps/ragtool"]
-	path = mcps/ragtool
-	url = git@github.com:LordFarquaadtheCreator/ragtool.git
+[submodule "mcps/generate-story"]
+	path = mcps/generate-story
+	url = git@github.com:LordFarquaadtheCreator/generate-story.git
