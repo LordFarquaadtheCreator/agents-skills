@@ -16,9 +16,9 @@
 [submodule "mcps/create-story"]
 	path = mcps/create-story
 	url = git@github.com:LordFarquaadtheCreator/create-story.git
-[submodule "mcps/generate-story"]
-	path = mcps/generate-story
-	url = git@github.com:LordFarquaadtheCreator/generate-story.git
+[submodule "mcps/story-tools"]
+	path = mcps/story-tools
+	url = git@github.com:LordFarquaadtheCreator/story-tools.git
 [submodule "mcps/manage-job"]
 	path = mcps/manage-job
 	url = git@github.com:LordFarquaadtheCreator/manage-job-mcp.git
