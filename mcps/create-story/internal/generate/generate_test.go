@@ -1,8 +1,6 @@
 package generate
 
 import (
-	"bytes"
-	"encoding/base64"
 	"image"
 	"image/color"
 	"image/png"
@@ -12,7 +10,7 @@ import (
 	"testing"
 )
 
-// makeTestPNG creates a 100x100 solid-color PNG and returns its base64 encoding.
+// makeTestPNG creates a 100x100 solid-color PNG temp file and returns its path.
 func makeTestPNG(t *testing.T, c color.Color) string {
 	t.Helper()
 	img := image.NewRGBA(image.Rect(0, 0, 100, 100))
@@ -21,11 +19,15 @@ func makeTestPNG(t *testing.T, c color.Color) string {
 			img.Set(x, y, c)
 		}
 	}
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
+	f, err := os.CreateTemp(t.TempDir(), "test-*.png")
+	if err != nil {
+		t.Fatalf("create temp: %v", err)
+	}
+	if err := png.Encode(f, img); err != nil {
 		t.Fatalf("encode png: %v", err)
 	}
-	return base64.StdEncoding.EncodeToString(buf.Bytes())
+	f.Close()
+	return f.Name()
 }
 
 func TestRunNoPages(t *testing.T) {
@@ -35,27 +37,28 @@ func TestRunNoPages(t *testing.T) {
 	}
 }
 
-func TestRunWritesPDF(t *testing.T) {
+func TestRunWritesPDFAndPNGs(t *testing.T) {
 	dir := t.TempDir()
 	img := makeTestPNG(t, color.RGBA{R: 100, G: 150, B: 200, A: 255})
 	out, err := Run(Input{
 		Title:     "Test Story",
 		Pages:     []Page{{Image: img, Text: "Once upon a time."}},
 		OutputDir: dir,
-		Filename:  "test.pdf",
 	})
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if !strings.HasSuffix(out.OutputPath, "test.pdf") {
-		t.Fatalf("output path = %q", out.OutputPath)
+	if !strings.HasSuffix(out.PDFPath, "Test Story.pdf") {
+		t.Fatalf("pdfPath = %q", out.PDFPath)
 	}
-	info, err := os.Stat(out.OutputPath)
-	if err != nil {
-		t.Fatalf("Stat: %v", err)
+	if info, err := os.Stat(out.PDFPath); err != nil || info.Size() == 0 {
+		t.Fatalf("PDF missing or empty: %v", err)
 	}
-	if info.Size() == 0 {
-		t.Fatal("PDF is empty")
+	if len(out.PNGPaths) != 1 {
+		t.Fatalf("pngPaths len = %d, want 1", len(out.PNGPaths))
+	}
+	if info, err := os.Stat(out.PNGPaths[0]); err != nil || info.Size() == 0 {
+		t.Fatalf("PNG missing or empty: %v", err)
 	}
 	if out.PageCount != 1 {
 		t.Fatalf("pageCount = %d, want 1", out.PageCount)
@@ -70,10 +73,9 @@ func TestRunMultiplePages(t *testing.T) {
 		Pages: []Page{
 			{Image: img, Text: "Page one text."},
 			{Image: img, Text: "Page two text."},
-			{Image: img, Text: "Page three with <b>bold</b> and <i>italic</i>."},
+			{Image: img, Text: "Page three with **bold** and *italic*."},
 		},
 		OutputDir: dir,
-		Filename:  "multi.pdf",
 	})
 	if err != nil {
 		t.Fatalf("Run: %v", err)
@@ -81,9 +83,17 @@ func TestRunMultiplePages(t *testing.T) {
 	if out.PageCount != 3 {
 		t.Fatalf("pageCount = %d, want 3", out.PageCount)
 	}
+	if len(out.PNGPaths) != 3 {
+		t.Fatalf("pngPaths len = %d, want 3", len(out.PNGPaths))
+	}
+	for i, p := range out.PNGPaths {
+		if _, err := os.Stat(p); err != nil {
+			t.Fatalf("png %d missing: %v", i+1, err)
+		}
+	}
 }
 
-func TestRunDefaultsFilename(t *testing.T) {
+func TestRunCreatesTitleSubdir(t *testing.T) {
 	dir := t.TempDir()
 	img := makeTestPNG(t, color.RGBA{R: 50, G: 50, B: 50, A: 255})
 	out, err := Run(Input{
@@ -94,73 +104,62 @@ func TestRunDefaultsFilename(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if out.Filename != "My Story.pdf" {
-		t.Fatalf("filename = %q", out.Filename)
+	if !strings.HasSuffix(out.OutputDir, "My Story") {
+		t.Fatalf("outputDir = %q", out.OutputDir)
 	}
 }
 
-func TestRunCreatesOutputDir(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "nested", "deep")
+func TestRunCollisionHandling(t *testing.T) {
+	dir := t.TempDir()
 	img := makeTestPNG(t, color.RGBA{R: 50, G: 50, B: 50, A: 255})
-	out, err := Run(Input{
-		Title:     "X",
+
+	out1, err := Run(Input{
+		Title:     "Dup",
 		Pages:     []Page{{Image: img, Text: "text"}},
 		OutputDir: dir,
-		Filename:  "x.pdf",
 	})
 	if err != nil {
-		t.Fatalf("Run: %v", err)
+		t.Fatalf("Run1: %v", err)
 	}
-	if _, err := os.Stat(out.OutputPath); err != nil {
-		t.Fatalf("file not created: %v", err)
+	out2, err := Run(Input{
+		Title:     "Dup",
+		Pages:     []Page{{Image: img, Text: "text"}},
+		OutputDir: dir,
+	})
+	if err != nil {
+		t.Fatalf("Run2: %v", err)
+	}
+	if out1.OutputDir == out2.OutputDir {
+		t.Fatalf("collision not handled: both got %q", out1.OutputDir)
 	}
 }
 
-func TestRunInvalidBase64(t *testing.T) {
+func TestRunInvalidImagePath(t *testing.T) {
 	dir := t.TempDir()
 	_, err := Run(Input{
 		Title:     "Bad",
-		Pages:     []Page{{Image: "not-valid-base64!!!", Text: "text"}},
+		Pages:     []Page{{Image: "/nonexistent/image.png", Text: "text"}},
 		OutputDir: dir,
-		Filename:  "bad.pdf",
 	})
 	if err == nil {
-		t.Fatal("expected error for invalid base64")
+		t.Fatal("expected error for invalid image path")
 	}
 }
 
-func TestRunHTMLFormatting(t *testing.T) {
+func TestRunMarkdownFormatting(t *testing.T) {
 	dir := t.TempDir()
 	img := makeTestPNG(t, color.RGBA{R: 100, G: 100, B: 100, A: 255})
-	text := "This has <b>bold</b> and <i>italic</i> and <br> line breaks."
+	text := "This has **bold** and *italic* and\nline breaks."
 	out, err := Run(Input{
-		Title:     "HTML Test",
+		Title:     "Markdown Test",
 		Pages:     []Page{{Image: img, Text: text}},
 		OutputDir: dir,
-		Filename:  "html.pdf",
 	})
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if _, err := os.Stat(out.OutputPath); err != nil {
-		t.Fatalf("file not created: %v", err)
-	}
-}
-
-func TestRunJPEGImage(t *testing.T) {
-	dir := t.TempDir()
-	img := makeTestPNG(t, color.RGBA{R: 100, G: 150, B: 200, A: 255})
-	out, err := Run(Input{
-		Title:     "JPEG Test",
-		Pages:     []Page{{Image: img, Text: "PNG works fine."}},
-		OutputDir: dir,
-		Filename:  "jpeg.pdf",
-	})
-	if err != nil {
-		t.Fatalf("Run: %v", err)
-	}
-	if _, err := os.Stat(out.OutputPath); err != nil {
-		t.Fatalf("file not created: %v", err)
+	if _, err := os.Stat(out.PDFPath); err != nil {
+		t.Fatalf("PDF not created: %v", err)
 	}
 }
 
@@ -171,14 +170,13 @@ func TestRunCustomFontSize(t *testing.T) {
 		Title:     "Custom Font",
 		Pages:     []Page{{Image: img, Text: "Custom font size text."}},
 		OutputDir: dir,
-		Filename:  "custom.pdf",
 		FontSize:  16,
 	})
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if _, err := os.Stat(out.OutputPath); err != nil {
-		t.Fatalf("file not created: %v", err)
+	if _, err := os.Stat(out.PDFPath); err != nil {
+		t.Fatalf("PDF not created: %v", err)
 	}
 }
 
@@ -205,15 +203,30 @@ func TestRunSanitizesUnicode(t *testing.T) {
 	img := makeTestPNG(t, color.RGBA{R: 100, G: 100, B: 100, A: 255})
 	text := "He said \u201Chello\u201D \u2014 the naïve café\u2026"
 	out, err := Run(Input{
-		Title:     "Unicode \u2014 Test",
+		Title:     "Unicode Test",
 		Pages:     []Page{{Image: img, Text: text}},
 		OutputDir: dir,
-		Filename:  "unicode.pdf",
 	})
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if _, err := os.Stat(out.OutputPath); err != nil {
-		t.Fatalf("file not created: %v", err)
+	if _, err := os.Stat(out.PDFPath); err != nil {
+		t.Fatalf("PDF not created: %v", err)
+	}
+}
+
+func TestRunNestedOutputDir(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "nested", "deep")
+	img := makeTestPNG(t, color.RGBA{R: 50, G: 50, B: 50, A: 255})
+	out, err := Run(Input{
+		Title:     "X",
+		Pages:     []Page{{Image: img, Text: "text"}},
+		OutputDir: dir,
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if _, err := os.Stat(out.PDFPath); err != nil {
+		t.Fatalf("PDF not created: %v", err)
 	}
 }

@@ -1,57 +1,123 @@
 package generate
 
 import (
-	"encoding/base64"
 	"fmt"
 	"image"
 	_ "image/jpeg"
-	_ "image/png"
+	"image/png"
+	"log"
 	"math"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/fogleman/gg"
 	"github.com/go-pdf/fpdf"
+	"github.com/golang/freetype/truetype"
+	xdraw "golang.org/x/image/draw"
+	"golang.org/x/image/font"
 )
 
 // Input is the agent-facing generate_story_pdf tool input.
 type Input struct {
-	Title         string  `json:"title" jsonschema:"required,Story title shown in the page footer"`
-	Pages         []Page  `json:"pages" jsonschema:"required,Array of pages — each has a base64 image and text"`
-	OutputDir     string  `json:"outputDir,omitempty" jsonschema:"Directory to save the PDF. Defaults to ~/Downloads."`
-	Filename      string  `json:"filename,omitempty" jsonschema:"PDF filename. Defaults to <title>.pdf."`
+	Title         string  `json:"title" jsonschema:"required,Story title shown in the page footer and used as the output directory name"`
+	Pages         []Page  `json:"pages" jsonschema:"required,Array of pages — each has an image file path and text"`
+	OutputDir     string  `json:"outputDir,omitempty" jsonschema:"Base directory for output. A subdirectory named after the title is created inside. Defaults to ~/Desktop."`
 	FontSize      float64 `json:"fontSize,omitempty" jsonschema:"Max body font size in points. Binary-searched down to fit text on page. Defaults to 30."`
 	LightenFactor float64 `json:"lightenFactor,omitempty" jsonschema:"How muted the background is (0.0=original, 1.0=white). Defaults to 0.8."`
 }
 
 // Page is one page of the story.
 type Page struct {
-	Image string `json:"image" jsonschema:"required,Base64-encoded PNG or JPEG image data (without data URI prefix)"`
-	Text  string `json:"text" jsonschema:"required,Story text for this page. Supports <b>bold</b>, <i>italic</i>, and <br> for line breaks."`
+	Image string `json:"image" jsonschema:"required,Absolute file path to a PNG or JPEG image"`
+	Text  string `json:"text" jsonschema:"required,Story text for this page. Markdown supported: **bold**, *italic*, \n for line breaks, \n\n for paragraph breaks."`
 }
 
 // Output is returned to the agent.
 type Output struct {
-	OutputPath string `json:"outputPath"`
-	PageCount  int    `json:"pageCount"`
-	Filename   string `json:"filename"`
+	OutputDir string   `json:"outputDir"`
+	PDFPath   string   `json:"pdfPath"`
+	PNGPaths  []string `json:"pngPaths"`
+	PageCount int      `json:"pageCount"`
 }
 
 const (
-	defaultFontSize      = 30.0
+	scale                = 2.0
+	pageWPt              = 1200.0
+	pageHPt              = 600.0
+	pageWPx              = pageWPt * scale
+	pageHPx              = pageHPt * scale
+	targetImgHeight      = pageHPx
+	textPad              = 20.0 * scale
+	footerHeight         = 24.0 * scale
+	defaultFontSize      = 30.0 * scale
 	defaultLightenFactor = 0.80
-	targetImgHeight      = 600.0
-	textPad              = 20.0
+	minFontSize          = 6.0 * scale
+
+	fontRegular = "/System/Library/Fonts/Supplemental/Arial.ttf"
+	fontBold    = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+	fontItalic  = "/System/Library/Fonts/Supplemental/Arial Italic.ttf"
 )
 
-// Run builds the PDF from the given input and writes it to disk.
+type fontFamily struct {
+	regular *truetype.Font
+	bold    *truetype.Font
+	italic  *truetype.Font
+}
+
+func loadFontFamily() (*fontFamily, error) {
+	rBytes, err := os.ReadFile(fontRegular)
+	if err != nil {
+		return nil, fmt.Errorf("load regular font: %w", err)
+	}
+	bBytes, err := os.ReadFile(fontBold)
+	if err != nil {
+		return nil, fmt.Errorf("load bold font: %w", err)
+	}
+	iBytes, err := os.ReadFile(fontItalic)
+	if err != nil {
+		return nil, fmt.Errorf("load italic font: %w", err)
+	}
+	rFont, err := truetype.Parse(rBytes)
+	if err != nil {
+		return nil, fmt.Errorf("parse regular font: %w", err)
+	}
+	bFont, err := truetype.Parse(bBytes)
+	if err != nil {
+		return nil, fmt.Errorf("parse bold font: %w", err)
+	}
+	iFont, err := truetype.Parse(iBytes)
+	if err != nil {
+		return nil, fmt.Errorf("parse italic font: %w", err)
+	}
+	return &fontFamily{regular: rFont, bold: bFont, italic: iFont}, nil
+}
+
+func (ff *fontFamily) face(forFace string, size float64) font.Face {
+	opt := &truetype.Options{Size: size, DPI: 72, Hinting: font.HintingFull}
+	switch forFace {
+	case "B":
+		return truetype.NewFace(ff.bold, opt)
+	case "I":
+		return truetype.NewFace(ff.italic, opt)
+	default:
+		return truetype.NewFace(ff.regular, opt)
+	}
+}
+
+func measureWith(f font.Face, s string) float64 {
+	d := &font.Drawer{Face: f}
+	return float64(d.MeasureString(s)) / 64
+}
+
+// Run builds the PDF and PNGs from the given input and writes them to disk.
 func Run(args Input) (Output, error) {
 	if len(args.Pages) == 0 {
 		return Output{}, fmt.Errorf("at least one page is required")
 	}
 
-	fontSize := args.FontSize
+	fontSize := args.FontSize * scale
 	if fontSize <= 0 {
 		fontSize = defaultFontSize
 	}
@@ -60,98 +126,318 @@ func Run(args Input) (Output, error) {
 		lighten = defaultLightenFactor
 	}
 
-	dir := args.OutputDir
-	if dir == "" {
+	ff, err := loadFontFamily()
+	if err != nil {
+		return Output{}, fmt.Errorf("load fonts: %w", err)
+	}
+
+	baseDir := args.OutputDir
+	if baseDir == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return Output{}, fmt.Errorf("resolve output dir: %w", err)
+			return Output{}, fmt.Errorf("resolve home: %w", err)
 		}
-		dir = filepath.Join(home, "Downloads")
+		baseDir = filepath.Join(home, "Desktop")
 	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
+
+	name := sanitizeFilename(strings.TrimSpace(args.Title))
+	if name == "" {
+		name = "Story"
+	}
+	outDir, err := resolveOutputDir(baseDir, name)
+	if err != nil {
+		return Output{}, err
+	}
+	if err := os.MkdirAll(outDir, 0755); err != nil {
 		return Output{}, fmt.Errorf("create output dir: %w", err)
 	}
 
-	fname := args.Filename
-	if fname == "" {
-		fname = strings.TrimSpace(args.Title)
-		if fname == "" {
-			fname = "Story"
-		}
-		fname += ".pdf"
-	}
+	pdfPath := filepath.Join(outDir, name+".pdf")
+	pngPaths := make([]string, len(args.Pages))
 
 	pdf := fpdf.New("", "pt", "", "")
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.SetMargins(0, 0, 0)
+	pdf.SetTitle(args.Title, false)
+	pdf.SetAuthor("senor", false)
+	pdf.SetCreator("create-story MCP", false)
+
+	log.Printf("create-story: generating %d-page PDF, title=%q, fontSize=%.1f, lighten=%.2f, outDir=%s",
+		len(args.Pages), args.Title, fontSize, lighten, outDir)
 
 	for i, page := range args.Pages {
-		imgPath, imgType, err := decodeBase64Image(page.Image, i)
+		log.Printf("create-story: page %d/%d — loading image %s", i+1, len(args.Pages), page.Image)
+		img, err := loadImage(page.Image)
 		if err != nil {
 			return Output{}, fmt.Errorf("page %d: %w", i+1, err)
 		}
-		renderPage(pdf, imgPath, imgType, sanitizeASCII(page.Text), sanitizeASCII(args.Title), i+1, fontSize, lighten)
-		os.Remove(imgPath)
+		log.Printf("create-story: page %d — rendering", i+1)
+		pageImg := renderPageImage(ff, img,
+			sanitizeASCII(page.Text),
+			sanitizeASCII(args.Title),
+			i+1, fontSize, lighten)
+
+		pngPath := filepath.Join(outDir, fmt.Sprintf("%s.%d.png", name, i+1))
+		if err := savePNG(pageImg, pngPath); err != nil {
+			return Output{}, fmt.Errorf("page %d: save png: %w", i+1, err)
+		}
+		pngPaths[i] = pngPath
+		log.Printf("create-story: page %d — saved %s", i+1, pngPath)
+
+		pdf.AddPageFormat("", fpdf.SizeType{Wd: pageWPt, Ht: pageHPt})
+		pdf.ImageOptions(pngPath, 0, 0, pageWPt, pageHPt, false,
+			fpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}, 0, "")
 	}
 
-	outPath := filepath.Join(dir, fname)
-	if err := pdf.OutputFileAndClose(outPath); err != nil {
+	log.Printf("create-story: writing PDF to %s", pdfPath)
+	if err := pdf.OutputFileAndClose(pdfPath); err != nil {
 		return Output{}, fmt.Errorf("write pdf: %w", err)
 	}
+	log.Printf("create-story: done — %d pages, %s", len(args.Pages), pdfPath)
 
 	return Output{
-		OutputPath: outPath,
-		PageCount:  len(args.Pages),
-		Filename:   fname,
+		OutputDir: outDir,
+		PDFPath:   pdfPath,
+		PNGPaths:  pngPaths,
+		PageCount: len(args.Pages),
 	}, nil
 }
 
-// decodeBase64Image decodes a base64 string to a temp file and returns its path and image type.
-func decodeBase64Image(b64 string, idx int) (string, string, error) {
-	data, err := base64.StdEncoding.DecodeString(strings.TrimSpace(b64))
-	if err != nil {
-		return "", "", fmt.Errorf("decode base64: %w", err)
-	}
-
-	imgType := "PNG"
-	if isJPEG(data) {
-		imgType = "JPG"
-	}
-
-	ext := ".png"
-	if imgType == "JPG" {
-		ext = ".jpg"
-	}
-
-	tmp, err := os.CreateTemp("", fmt.Sprintf("story-page-%d-*%s", idx+1, ext))
-	if err != nil {
-		return "", "", fmt.Errorf("create temp file: %w", err)
-	}
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		os.Remove(tmp.Name())
-		return "", "", fmt.Errorf("write temp file: %w", err)
-	}
-	tmp.Close()
-	return tmp.Name(), imgType, nil
-}
-
-func isJPEG(data []byte) bool {
-	return len(data) >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF
-}
-
-// getDominantColor extracts a muted background color from the image.
-func getDominantColor(path string, lighten float64) (int, int, int) {
+func loadImage(path string) (image.Image, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return 240, 235, 225
+		return nil, fmt.Errorf("open image: %w", err)
 	}
 	defer f.Close()
 	img, _, err := image.Decode(f)
 	if err != nil {
-		return 240, 235, 225
+		return nil, fmt.Errorf("decode image: %w", err)
+	}
+	return img, nil
+}
+
+func savePNG(img image.Image, path string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return png.Encode(f, img)
+}
+
+type pageItem struct {
+	word, face  string
+	isParaBreak bool
+	isLineBreak bool
+}
+
+func flattenWords(story string) []pageItem {
+	var all []pageItem
+	for _, block := range strings.Split(story, "\n\n") {
+		block = strings.TrimSpace(block)
+		if block == "" {
+			continue
+		}
+		for _, ln := range strings.Split(block, "\n") {
+			if ln == "" {
+				all = append(all, pageItem{"", "", false, true})
+				continue
+			}
+			segs := parseMarkdown(ln)
+			for _, s := range segs {
+				for _, w := range strings.Fields(s.text) {
+					all = append(all, pageItem{w, s.face, false, false})
+				}
+			}
+			all = append(all, pageItem{"", "", false, true})
+		}
+		if len(all) > 0 && all[len(all)-1].isLineBreak {
+			all = all[:len(all)-1]
+		}
+		all = append(all, pageItem{"", "", true, false})
+	}
+	return all
+}
+
+func renderPageImage(ff *fontFamily, srcImg image.Image, story, title string, pageNum int, maxFontSize, lighten float64) image.Image {
+	srcBounds := srcImg.Bounds()
+	srcW, srcH := float64(srcBounds.Dx()), float64(srcBounds.Dy())
+	imgScale := targetImgHeight / srcH
+	renderW := srcW * imgScale
+	renderH := targetImgHeight
+	if renderW > pageWPx/2 {
+		imgScale = (pageWPx / 2) / srcW
+		renderW = pageWPx / 2
+		renderH = srcH * imgScale
 	}
 
+	r, g, b := getDominantColorFromImage(srcImg, lighten)
+
+	dc := gg.NewContext(int(pageWPx), int(pageHPx))
+	dc.SetRGB(float64(r)/255, float64(g)/255, float64(b)/255)
+	dc.Clear()
+
+	scaledW, scaledH := int(renderW), int(renderH)
+	scaled := image.NewRGBA(image.Rect(0, 0, scaledW, scaledH))
+	xdraw.BiLinear.Scale(scaled, scaled.Bounds(), srcImg, srcBounds, xdraw.Over, nil)
+	dc.DrawImage(scaled, 0, 0)
+
+	textX := renderW + textPad
+	maxW := pageWPx - textX - textPad
+	availH := pageHPx - textPad*2 - footerHeight
+
+	all := flattenWords(story)
+
+	// binary search font size
+	minSize := minFontSize
+	maxSize := maxFontSize
+	bestSize := minSize
+
+	for minSize <= maxSize {
+		try := (minSize + maxSize) / 2
+		lh := try * 1.28
+		paraPad := lh * 0.4
+		need := 0.0
+		lineW := 0.0
+		prevWord := false
+
+		for _, it := range all {
+			if it.isParaBreak {
+				if prevWord {
+					need += lh
+					lineW = 0
+					prevWord = false
+				}
+				need += paraPad
+				continue
+			}
+			if it.isLineBreak {
+				if prevWord {
+					need += lh
+					lineW = 0
+					prevWord = false
+				}
+				continue
+			}
+			f := ff.face(it.face, try)
+			wW := measureWith(f, it.word)
+			testW := lineW
+			if prevWord {
+				testW += measureWith(f, " ")
+			}
+			testW += wW
+			if testW > maxW && prevWord {
+				need += lh
+				if need > availH {
+					break
+				}
+				lineW = wW
+				prevWord = true
+			} else {
+				lineW = testW
+				prevWord = true
+			}
+		}
+		if prevWord {
+			need += lh
+		}
+		if need <= availH {
+			bestSize = try
+			minSize = try + 0.5
+		} else {
+			maxSize = try - 0.5
+		}
+	}
+
+	fontSize := math.Min(bestSize, maxFontSize)
+	lineH := fontSize * 1.28
+	paraPad := lineH * 0.4
+
+	faceReg := ff.face("", fontSize)
+	faceBld := ff.face("B", fontSize)
+	faceItl := ff.face("I", fontSize)
+	faceFor := func(s string) font.Face {
+		switch s {
+		case "B":
+			return faceBld
+		case "I":
+			return faceItl
+		default:
+			return faceReg
+		}
+	}
+
+	// render text
+	dc.SetRGB(26.0/255, 26.0/255, 26.0/255)
+	ty := textPad + fontSize
+	skipPad := true
+	var lineWords []pageItem
+	lineW := 0.0
+
+	flush := func() {
+		if len(lineWords) == 0 {
+			return
+		}
+		x := textX
+		for j, w := range lineWords {
+			f := faceFor(w.face)
+			dc.SetFontFace(f)
+			dc.DrawString(w.word, x, ty)
+			x += measureWith(f, w.word)
+			if j < len(lineWords)-1 {
+				x += measureWith(f, " ")
+			}
+		}
+		ty += lineH
+		lineWords = nil
+		lineW = 0
+	}
+
+	for _, it := range all {
+		if it.isParaBreak {
+			flush()
+			if !skipPad {
+				ty += paraPad
+			}
+			skipPad = false
+			continue
+		}
+		if it.isLineBreak {
+			flush()
+			skipPad = false
+			continue
+		}
+		skipPad = false
+		f := faceFor(it.face)
+		wW := measureWith(f, it.word)
+		testW := lineW
+		if len(lineWords) > 0 {
+			testW += measureWith(f, " ")
+		}
+		testW += wW
+		if testW > maxW && len(lineWords) > 0 {
+			flush()
+			lineWords = append(lineWords, it)
+			lineW = wW
+		} else {
+			lineWords = append(lineWords, it)
+			lineW = testW
+		}
+	}
+	flush()
+
+	// footer
+	label := fmt.Sprintf("%s #%d", title, pageNum)
+	dc.SetFontFace(faceReg)
+	dc.SetRGB(100.0/255, 100.0/255, 100.0/255)
+	lw := measureWith(faceReg, label)
+	dc.DrawString(label, textX+maxW-lw, pageHPx-textPad)
+
+	return dc.Image()
+}
+
+// getDominantColorFromImage extracts a muted background color from the image.
+func getDominantColorFromImage(img image.Image, lighten float64) (int, int, int) {
 	b := img.Bounds()
 	type bucket struct{ r, g, bl, count int }
 	pal := make(map[int]*bucket)
@@ -218,92 +504,73 @@ func lightenColor(r, g, bl int, lighten float64) (int, int, int) {
 	return r, g, bl
 }
 
-func imgSize(path string) (int, int) {
-	f, err := os.Open(path)
-	if err != nil {
-		return 720, 1024
-	}
-	defer f.Close()
-	img, _, err := image.Decode(f)
-	if err != nil {
-		return 720, 1024
-	}
-	b := img.Bounds()
-	return b.Dx(), b.Dy()
-}
-
 type segment struct{ text, face string }
 
-func parseHTML(s string) []segment {
+// parseMarkdown splits text into segments with face info.
+// Supports **bold** and *italic* inline markup.
+func parseMarkdown(s string) []segment {
 	var segs []segment
-	cur := s
-	for cur != "" {
-		ei := strings.Index(cur, "<")
-		if ei < 0 {
-			if t := strings.TrimSpace(stripTags(cur)); t != "" {
-				segs = append(segs, segment{t, ""})
-			}
-			break
-		}
-		if ei > 0 {
-			if t := strings.TrimSpace(stripTags(cur[:ei])); t != "" {
-				segs = append(segs, segment{t, ""})
-			}
-			cur = cur[ei:]
-			continue
-		}
-		if strings.HasPrefix(cur, "<br>") || strings.HasPrefix(cur, "<br/>") {
-			cur = cur[4:]
-			if strings.HasPrefix(cur, "/>") {
-				cur = cur[1:]
-			}
-			continue
-		}
-		if strings.HasPrefix(cur, "</") {
-			cur = cur[4+len(string(cur[2])):]
-			continue
-		}
-		if strings.HasPrefix(cur, "<b>") {
-			end := strings.Index(cur, "</b>")
+	for s != "" {
+		if strings.HasPrefix(s, "**") {
+			end := strings.Index(s[2:], "**")
 			if end < 0 {
-				continue
+				break
 			}
-			if t := strings.TrimSpace(stripTags(cur[3:end])); t != "" {
-				segs = append(segs, segment{t, "B"})
+			text := s[2 : 2+end]
+			if text != "" {
+				segs = append(segs, segment{text, "B"})
 			}
-			cur = cur[end+4:]
+			s = s[2+end+2:]
 			continue
 		}
-		if strings.HasPrefix(cur, "<i>") {
-			end := strings.Index(cur, "</i>")
+		if strings.HasPrefix(s, "*") {
+			end := strings.Index(s[1:], "*")
 			if end < 0 {
-				continue
+				break
 			}
-			if t := strings.TrimSpace(stripTags(cur[3:end])); t != "" {
-				segs = append(segs, segment{t, "I"})
+			text := s[1 : 1+end]
+			if text != "" {
+				segs = append(segs, segment{text, "I"})
 			}
-			cur = cur[end+4:]
+			s = s[1+end+1:]
 			continue
 		}
-		if n := strings.Index(cur, ">"); n >= 0 {
-			cur = cur[n+1:]
+		bi := strings.Index(s, "**")
+		ii := strings.Index(s, "*")
+		var next int
+		if bi < 0 && ii < 0 {
+			next = -1
+		} else if bi < 0 {
+			next = ii
+		} else if ii < 0 {
+			next = bi
 		} else {
+			next = min(bi, ii)
+		}
+		if next < 0 {
+			if s != "" {
+				segs = append(segs, segment{s, ""})
+			}
 			break
 		}
+		if next > 0 {
+			segs = append(segs, segment{s[:next], ""})
+		}
+		s = s[next:]
 	}
 	return segs
 }
 
 // sanitizeASCII replaces common Unicode punctuation with ASCII equivalents
-// and strips any remaining non-ASCII characters so fpdf core fonts can render them.
+// and strips any remaining non-ASCII characters.
 func sanitizeASCII(s string) string {
-	s = strings.ReplaceAll(s, "\u2014", "-")   // em dash
-	s = strings.ReplaceAll(s, "\u2013", "-")   // en dash
-	s = strings.ReplaceAll(s, "\u201C", `"`)   // left double quote
-	s = strings.ReplaceAll(s, "\u201D", `"`)   // right double quote
-	s = strings.ReplaceAll(s, "\u2018", "'")   // left single quote
-	s = strings.ReplaceAll(s, "\u2019", "'")   // right single quote
-	s = strings.ReplaceAll(s, "\u2026", "...") // ellipsis
+	s = strings.ReplaceAll(s, "\u2014", "-")
+	s = strings.ReplaceAll(s, "\u2013", "-")
+	s = strings.ReplaceAll(s, "\u201C", `"`)
+	s = strings.ReplaceAll(s, "\u201D", `"`)
+	s = strings.ReplaceAll(s, "\u2018", "'")
+	s = strings.ReplaceAll(s, "\u2019", "'")
+	s = strings.ReplaceAll(s, "\u2026", "...")
 	var b strings.Builder
 	b.Grow(len(s))
 	for _, r := range s {
@@ -314,170 +581,27 @@ func sanitizeASCII(s string) string {
 	return b.String()
 }
 
-func stripTags(s string) string {
-	s = strings.ReplaceAll(s, "<b>", "")
-	s = strings.ReplaceAll(s, "</b>", "")
-	s = strings.ReplaceAll(s, "<i>", "")
-	s = strings.ReplaceAll(s, "</i>", "")
-	s = strings.ReplaceAll(s, "&amp;", "&")
-	s = strings.ReplaceAll(s, "&lt;", "<")
-	s = strings.ReplaceAll(s, "&gt;", ">")
-	return s
+func sanitizeFilename(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if r == '/' || r == ':' || r == '\\' || r == '\x00' {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return strings.TrimSpace(b.String())
 }
 
-func renderPage(pdf *fpdf.Fpdf, imgPath, imgType, story, title string, pageNum int, maxFontSize, lighten float64) {
-	iw, ih := imgSize(imgPath)
-	scale := targetImgHeight / float64(ih)
-	renderW := float64(iw) * scale
-	renderH := targetImgHeight
-
-	pH := renderH
-	pW := pH * 2
-
-	r, g, bl := getDominantColor(imgPath, lighten)
-
-	size := fpdf.SizeType{Wd: pW, Ht: pH}
-	pdf.AddPageFormat("", size)
-	pdf.SetFillColor(r, g, bl)
-	pdf.Rect(0, 0, pW, pH, "F")
-
-	pdf.ImageOptions(imgPath, 0, 0, renderW, renderH, false,
-		fpdf.ImageOptions{ImageType: imgType, ReadDpi: true}, 0, "")
-
-	tx := renderW + textPad
-	maxW := pW - tx - textPad
-	availH := pH - textPad*2 - 24 // 24 = footer height
-
-	// Flatten all blocks into word list with paragraph breaks
-	type item struct {
-		word, face  string
-		isParaBreak bool
+func resolveOutputDir(base, name string) (string, error) {
+	dir := filepath.Join(base, name)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return dir, nil
 	}
-	var all []item
-	for _, block := range strings.Split(story, "\n\n") {
-		block = strings.TrimSpace(block)
-		if block == "" {
-			continue
-		}
-		segs := parseHTML(block)
-		if len(segs) == 0 {
-			continue
-		}
-		for _, s := range segs {
-			for _, w := range strings.Fields(s.text) {
-				all = append(all, item{w, s.face, false})
-			}
-		}
-		all = append(all, item{"", "", true})
-	}
-
-	// Binary search for best font size that fits
-	measure := fpdf.New("", "pt", "", "")
-	measure.SetAutoPageBreak(false, 0)
-	measure.AddPage()
-	minSize := 6.0
-	maxSize := maxFontSize
-	bestSize := minSize
-
-	for minSize <= maxSize {
-		try := (minSize + maxSize) / 2
-		lh := try * 1.28
-		paraPad := lh * 0.4
-		need := 0.0
-		line := ""
-		for _, it := range all {
-			if it.isParaBreak {
-				if line != "" {
-					need += lh
-					line = ""
-				}
-				need += paraPad
-				continue
-			}
-			measure.SetFont("Helvetica", it.face, try)
-			test := line
-			if test != "" {
-				test += " "
-			}
-			test += it.word
-			if measure.GetStringWidth(test) > maxW && line != "" {
-				need += lh
-				if need > availH {
-					break
-				}
-				line = it.word
-			} else {
-				line = test
-			}
-		}
-		if line != "" {
-			need += lh
-		}
-		if need <= availH {
-			bestSize = try
-			minSize = try + 0.5
-		} else {
-			maxSize = try - 0.5
+	for i := 2; i < 100; i++ {
+		candidate := filepath.Join(base, fmt.Sprintf("%s %d", name, i))
+		if _, err := os.Stat(candidate); os.IsNotExist(err) {
+			return candidate, nil
 		}
 	}
-
-	fontSize := math.Min(bestSize, maxFontSize)
-	lineH := fontSize * 1.28
-	paraPad := lineH * 0.4
-
-	// Render text
-	ty := textPad
-	pdf.SetTextColor(26, 26, 26)
-	line := ""
-	lface := ""
-	skipPad := true
-
-	for _, it := range all {
-		if it.isParaBreak {
-			if line != "" {
-				pdf.SetFont("Helvetica", lface, fontSize)
-				pdf.SetXY(tx, ty)
-				pdf.CellFormat(maxW, lineH, line, "", 0, "L", false, 0, "")
-				ty += lineH
-				line = ""
-				lface = ""
-			}
-			if !skipPad {
-				ty += paraPad
-			}
-			skipPad = false
-			continue
-		}
-		skipPad = false
-		test := line
-		if test != "" {
-			test += " "
-		}
-		test += it.word
-		pdf.SetFont("Helvetica", it.face, fontSize)
-		if pdf.GetStringWidth(test) > maxW && line != "" {
-			pdf.SetFont("Helvetica", lface, fontSize)
-			pdf.SetXY(tx, ty)
-			pdf.CellFormat(maxW, lineH, line, "", 0, "L", false, 0, "")
-			ty += lineH
-			line = it.word
-			lface = it.face
-		} else {
-			line = test
-			lface = it.face
-		}
-	}
-	if line != "" {
-		pdf.SetFont("Helvetica", lface, fontSize)
-		pdf.SetXY(tx, ty)
-		pdf.CellFormat(maxW, lineH, line, "", 0, "L", false, 0, "")
-	}
-
-	// Footer
-	label := fmt.Sprintf("%s - %d", title, pageNum)
-	pdf.SetFont("Helvetica", "", fontSize)
-	pdf.SetTextColor(100, 100, 100)
-	fw := pdf.GetStringWidth(label)
-	pdf.SetXY(tx+maxW-fw, pH-textPad-fontSize)
-	pdf.CellFormat(fw, fontSize, label, "", 0, "R", false, 0, "")
+	return "", fmt.Errorf("could not find available output directory after 100 attempts")
 }

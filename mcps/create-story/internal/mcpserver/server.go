@@ -16,7 +16,7 @@ func Run() error {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "generate_story_pdf",
-		Description: "Generate a PDF book from base64 images and text. Each page has an image on the left and story text on the right, with a muted background color extracted from the image. The agent provides images as base64-encoded strings (PNG or JPEG, no data URI prefix) and text per page. Text supports <b>bold</b>, <i>italic</i>, and <br> for line breaks. Returns the absolute file path of the saved PDF.",
+		Description: "Generate a PDF book and per-page PNG images from image files and text. Each page has an image on the left and story text on the right, with a muted background color extracted from the image. The agent provides absolute file paths to PNG or JPEG images and text per page. Text supports markdown: **bold**, *italic*, \\n for line breaks, \\n\\n for paragraph breaks. Output goes to ~/Desktop/<title>/ — contains <title>.pdf and <title>.<n>.png for each page. Returns output directory, PDF path, and PNG paths.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args generate.Input) (*mcp.CallToolResult, generate.Output, error) {
 		return handleGenerate(ctx, req, args)
 	})
@@ -29,11 +29,11 @@ func handleGenerate(ctx context.Context, req *mcp.CallToolRequest, args generate
 		return nil, generate.Output{}, fmt.Errorf("title is required")
 	}
 	if len(args.Pages) == 0 {
-		return nil, generate.Output{}, fmt.Errorf("at least one page is required — each page needs an image (base64) and text")
+		return nil, generate.Output{}, fmt.Errorf("at least one page is required — each page needs an image file path and text")
 	}
 	for i, p := range args.Pages {
 		if p.Image == "" {
-			return nil, generate.Output{}, fmt.Errorf("page %d: image is required (base64-encoded)", i+1)
+			return nil, generate.Output{}, fmt.Errorf("page %d: image is required (absolute file path)", i+1)
 		}
 		if p.Text == "" {
 			return nil, generate.Output{}, fmt.Errorf("page %d: text is required", i+1)

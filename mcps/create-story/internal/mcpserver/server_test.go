@@ -1,12 +1,11 @@
 package mcpserver
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"image"
 	"image/color"
 	"image/png"
+	"os"
 	"strings"
 	"testing"
 
@@ -23,29 +22,35 @@ func makeTestPNG(t *testing.T, c color.Color) string {
 			img.Set(x, y, c)
 		}
 	}
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
+	f, err := os.CreateTemp(t.TempDir(), "test-*.png")
+	if err != nil {
+		t.Fatalf("create temp: %v", err)
+	}
+	if err := png.Encode(f, img); err != nil {
 		t.Fatalf("encode png: %v", err)
 	}
-	return base64.StdEncoding.EncodeToString(buf.Bytes())
+	f.Close()
+	return f.Name()
 }
 
 func TestHandleGenerate(t *testing.T) {
 	img := makeTestPNG(t, color.RGBA{R: 100, G: 150, B: 200, A: 255})
 	_, out, err := handleGenerate(context.Background(), &mcp.CallToolRequest{}, generate.Input{
-		Title:    "Test Story",
-		Pages:    []generate.Page{{Image: img, Text: "Once upon a time."}},
+		Title:     "Test Story",
+		Pages:     []generate.Page{{Image: img, Text: "Once upon a time."}},
 		OutputDir: t.TempDir(),
-		Filename:  "test.pdf",
 	})
 	if err != nil {
 		t.Fatalf("handleGenerate: %v", err)
 	}
-	if !strings.HasSuffix(out.OutputPath, ".pdf") {
-		t.Fatalf("output path = %q", out.OutputPath)
+	if !strings.HasSuffix(out.PDFPath, ".pdf") {
+		t.Fatalf("pdfPath = %q", out.PDFPath)
 	}
 	if out.PageCount != 1 {
 		t.Fatalf("pageCount = %d, want 1", out.PageCount)
+	}
+	if len(out.PNGPaths) != 1 {
+		t.Fatalf("pngPaths len = %d, want 1", len(out.PNGPaths))
 	}
 }
 
@@ -98,12 +103,14 @@ func TestHandleGenerateMultiplePages(t *testing.T) {
 			{Image: img, Text: "Page two."},
 		},
 		OutputDir: t.TempDir(),
-		Filename:  "multi.pdf",
 	})
 	if err != nil {
 		t.Fatalf("handleGenerate: %v", err)
 	}
 	if out.PageCount != 2 {
 		t.Fatalf("pageCount = %d, want 2", out.PageCount)
+	}
+	if len(out.PNGPaths) != 2 {
+		t.Fatalf("pngPaths len = %d, want 2", len(out.PNGPaths))
 	}
 }

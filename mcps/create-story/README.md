@@ -26,7 +26,7 @@ Generate a PDF book from base64 images and text. Each page: image left, story te
 | `pages` | array | yes | Array of pages — each has `image` (base64 PNG/JPEG, no data URI prefix) and `text` |
 | `outputDir` | string | no | Directory to save the PDF. Defaults to `~/Downloads`. |
 | `filename` | string | no | PDF filename. Defaults to `<title>.pdf`. |
-| `fontSize` | number | no | Body font size in points. Defaults to 13. |
+| `fontSize` | number | no | Max body font size in points. Binary-searched down to fit text on page. Defaults to 30. |
 | `lightenFactor` | number | no | How muted the background (0.0=original, 1.0=white). Defaults to 0.8. |
 
 Each page object:
@@ -34,7 +34,7 @@ Each page object:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `image` | string | yes | Base64-encoded PNG or JPEG (no `data:image/png;base64,` prefix) |
-| `text` | string | yes | Story text. Supports `<b>bold</b>`, `<i>italic</i>`, `<br>` for line breaks. |
+| `text` | string | yes | Story text. Markdown supported: `**bold**`, `*italic*`, `\n` for line breaks, `\n\n` for paragraph breaks. |
 
 Returns:
 
@@ -76,7 +76,7 @@ Tests across 2 packages:
 
 | Package | Tests cover |
 |---|---|
-| `internal/generate` | Empty pages, PDF written, multiple pages, default filename, nested output dir, invalid base64, HTML formatting, custom font size |
+| `internal/generate` | Empty pages, PDF written, multiple pages, default filename, nested output dir, invalid base64, markdown formatting, custom font size |
 | `internal/mcpserver` | Valid generation, missing title, no pages, missing image, missing text, multiple pages |
 
 ## MCP Config

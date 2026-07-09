@@ -29,7 +29,7 @@ Tests across 2 packages:
 
 | Package | Tests cover |
 |---|---|
-| `internal/generate` | Empty pages, PDF written, multiple pages, default filename, nested output dir, invalid base64, HTML formatting, custom font size |
+| `internal/generate` | Empty pages, PDF written, multiple pages, default filename, nested output dir, invalid base64, markdown formatting, custom font size |
 | `internal/mcpserver` | Valid generation, missing title, no pages, missing image, missing text, multiple pages |
 
 ## Build
