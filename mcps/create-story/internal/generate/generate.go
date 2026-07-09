@@ -3,6 +3,7 @@ package generate
 import (
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/jpeg"
 	"image/png"
 	"log"
@@ -21,11 +22,12 @@ import (
 
 // Input is the agent-facing generate_story_pdf tool input.
 type Input struct {
-	Title         string  `json:"title" jsonschema:"required,Story title shown in the page footer and used as the output directory name"`
-	Pages         []Page  `json:"pages" jsonschema:"required,Array of pages — each has an image file path and text"`
-	OutputDir     string  `json:"outputDir,omitempty" jsonschema:"Base directory for output. A subdirectory named after the title is created inside. Defaults to ~/Desktop."`
-	FontSize      float64 `json:"fontSize,omitempty" jsonschema:"Max body font size in points. Binary-searched down to fit text on page. Defaults to 30."`
-	LightenFactor float64 `json:"lightenFactor,omitempty" jsonschema:"How muted the background is (0.0=original, 1.0=white). Defaults to 0.8."`
+	Title            string  `json:"title" jsonschema:"required,Story title shown in the page footer and used as the output directory name"`
+	Pages            []Page  `json:"pages" jsonschema:"required,Array of pages — each has an image file path and text"`
+	OutputDir        string  `json:"outputDir,omitempty" jsonschema:"Base directory for output. A subdirectory named after the title is created inside. Defaults to ~/Desktop."`
+	FontSize         float64 `json:"fontSize,omitempty" jsonschema:"Max body font size in points. Binary-searched down to fit text on page. Defaults to 30."`
+	LightenFactor    float64 `json:"lightenFactor,omitempty" jsonschema:"How muted the background is (0.0=original, 1.0=white). Defaults to 0.8."`
+	PreviewAfterPage int     `json:"previewAfterPage,omitempty" jsonschema:"Pages after this number are blurred in the preview PDF. E.g. 3 means pages 1-3 are clear, 4+ are blurred. 0 or omitted means no preview generated."`
 }
 
 // Page is one page of the story.
@@ -36,10 +38,12 @@ type Page struct {
 
 // Output is returned to the agent.
 type Output struct {
-	OutputDir string   `json:"outputDir"`
-	PDFPath   string   `json:"pdfPath"`
-	PNGPaths  []string `json:"pngPaths"`
-	PageCount int      `json:"pageCount"`
+	OutputDir       string   `json:"outputDir"`
+	PDFPath         string   `json:"pdfPath"`
+	PNGPaths        []string `json:"pngPaths"`
+	PageCount       int      `json:"pageCount"`
+	PreviewPDFPath  string   `json:"previewPdfPath,omitempty"`
+	PreviewPNGPaths []string `json:"previewPngPaths,omitempty"`
 }
 
 const (
@@ -54,6 +58,7 @@ const (
 	defaultFontSize      = 30.0 * scale
 	defaultLightenFactor = 0.80
 	minFontSize          = 6.0 * scale
+	previewBlurSigma     = 25.0
 
 	fontRegular = "/System/Library/Fonts/Supplemental/Arial.ttf"
 	fontBold    = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
@@ -154,6 +159,7 @@ func Run(args Input) (Output, error) {
 
 	pdfPath := filepath.Join(outDir, name+".pdf")
 	pngPaths := make([]string, len(args.Pages))
+	pageImgs := make([]image.Image, len(args.Pages))
 
 	pdf := fpdf.New("", "pt", "", "")
 	pdf.SetAutoPageBreak(false, 0)
@@ -176,6 +182,7 @@ func Run(args Input) (Output, error) {
 			sanitizeASCII(page.Text),
 			sanitizeASCII(args.Title),
 			i+1, fontSize, lighten)
+		pageImgs[i] = pageImg
 
 		pngPath := filepath.Join(outDir, fmt.Sprintf("%s.%d.png", name, i+1))
 		if err := savePNG(pageImg, pngPath); err != nil {
@@ -195,11 +202,60 @@ func Run(args Input) (Output, error) {
 	}
 	log.Printf("create-story: done — %d pages, %s", len(args.Pages), pdfPath)
 
+	previewPDFPath := ""
+	var previewPNGPaths []string
+
+	if args.PreviewAfterPage > 0 && args.PreviewAfterPage < len(args.Pages) {
+		previewDir := filepath.Join(outDir, "preview")
+		if err := os.MkdirAll(previewDir, 0755); err != nil {
+			return Output{}, fmt.Errorf("create preview dir: %w", err)
+		}
+
+		previewPDFPath = filepath.Join(previewDir, name+"_preview.pdf")
+		previewPNGPaths = make([]string, len(args.Pages))
+
+		previewPDF := fpdf.New("", "pt", "", "")
+		previewPDF.SetAutoPageBreak(false, 0)
+		previewPDF.SetMargins(0, 0, 0)
+		previewPDF.SetTitle(args.Title+" (Preview)", false)
+		previewPDF.SetAuthor("senor", false)
+		previewPDF.SetCreator("create-story MCP", false)
+
+		log.Printf("create-story: generating preview PDF, blur after page %d", args.PreviewAfterPage)
+
+		for i, pageImg := range pageImgs {
+			var img image.Image
+			if i+1 > args.PreviewAfterPage {
+				img = gaussianBlur(pageImg, previewBlurSigma)
+			} else {
+				img = pageImg
+			}
+
+			pngPath := filepath.Join(previewDir, fmt.Sprintf("%s_preview_%d.png", name, i+1))
+			if err := savePNG(img, pngPath); err != nil {
+				return Output{}, fmt.Errorf("preview page %d: save png: %w", i+1, err)
+			}
+			previewPNGPaths[i] = pngPath
+
+			previewPDF.AddPageFormat("", fpdf.SizeType{Wd: pageWPt, Ht: pageHPt})
+			previewPDF.ImageOptions(pngPath, 0, 0, pageWPt, pageHPt, false,
+				fpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}, 0, "")
+		}
+
+		log.Printf("create-story: writing preview PDF to %s", previewPDFPath)
+		if err := previewPDF.OutputFileAndClose(previewPDFPath); err != nil {
+			return Output{}, fmt.Errorf("write preview pdf: %w", err)
+		}
+		log.Printf("create-story: preview done — %s", previewPDFPath)
+	}
+
 	return Output{
-		OutputDir: outDir,
-		PDFPath:   pdfPath,
-		PNGPaths:  pngPaths,
-		PageCount: len(args.Pages),
+		OutputDir:       outDir,
+		PDFPath:         pdfPath,
+		PNGPaths:        pngPaths,
+		PageCount:       len(args.Pages),
+		PreviewPDFPath:  previewPDFPath,
+		PreviewPNGPaths: previewPNGPaths,
 	}, nil
 }
 
@@ -604,4 +660,97 @@ func resolveOutputDir(base, name string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("could not find available output directory after 100 attempts")
+}
+
+// gaussianBlur applies a separable Gaussian blur to the source image.
+func gaussianBlur(src image.Image, sigma float64) image.Image {
+	if sigma <= 0 {
+		return src
+	}
+	radius := int(math.Ceil(sigma * 3))
+	if radius < 1 {
+		radius = 1
+	}
+	size := radius*2 + 1
+	kernel := make([]float64, size)
+	var sum float64
+	for i := 0; i < size; i++ {
+		x := float64(i - radius)
+		v := math.Exp(-(x * x) / (2 * sigma * sigma))
+		kernel[i] = v
+		sum += v
+	}
+	for i := range kernel {
+		kernel[i] /= sum
+	}
+
+	bounds := src.Bounds()
+	w, h := bounds.Dx(), bounds.Dy()
+	rgba := image.NewRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			r, g, b, a := src.At(bounds.Min.X+x, bounds.Min.Y+y).RGBA()
+			rgba.SetRGBA(x, y, color.RGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)})
+		}
+	}
+
+	// horizontal pass
+	tmp := image.NewRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			var r, g, b, a float64
+			for k := -radius; k <= radius; k++ {
+				sx := x + k
+				if sx < 0 {
+					sx = 0
+				}
+				if sx >= w {
+					sx = w - 1
+				}
+				weight := kernel[k+radius]
+				px := rgba.RGBAAt(sx, y)
+				r += float64(px.R) * weight
+				g += float64(px.G) * weight
+				b += float64(px.B) * weight
+				a += float64(px.A) * weight
+			}
+			tmp.SetRGBA(x, y, color.RGBA{
+				R: uint8(math.Round(r)),
+				G: uint8(math.Round(g)),
+				B: uint8(math.Round(b)),
+				A: uint8(math.Round(a)),
+			})
+		}
+	}
+
+	// vertical pass
+	dst := image.NewRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			var r, g, b, a float64
+			for k := -radius; k <= radius; k++ {
+				sy := y + k
+				if sy < 0 {
+					sy = 0
+				}
+				if sy >= h {
+					sy = h - 1
+				}
+				weight := kernel[k+radius]
+				px := tmp.RGBAAt(x, sy)
+				r += float64(px.R) * weight
+				g += float64(px.G) * weight
+				b += float64(px.B) * weight
+				a += float64(px.A) * weight
+			}
+			dst.SetRGBA(x, y, color.RGBA{
+				R: uint8(math.Round(r)),
+				G: uint8(math.Round(g)),
+				B: uint8(math.Round(b)),
+				A: uint8(math.Round(a)),
+			})
+		}
+	}
+
+	return dst
 }

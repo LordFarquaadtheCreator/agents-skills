@@ -16,7 +16,7 @@ func Run() error {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "generate_story_pdf",
-		Description: "Generate a PDF book and per-page PNG images from image files and text. Each page has an image on the left and story text on the right, with a muted background color extracted from the image. The agent provides absolute file paths to PNG or JPEG images and text per page. Text supports markdown: **bold**, *italic*, \\n for line breaks, \\n\\n for paragraph breaks. Output goes to ~/Desktop/<title>/ — contains <title>.pdf and <title>.<n>.png for each page. Returns output directory, PDF path, and PNG paths.",
+		Description: "Generate a PDF book and per-page PNG images from image files and text. Each page has an image on the left and story text on the right, with a muted background color extracted from the image. The agent provides absolute file paths to PNG or JPEG images and text per page. Text supports markdown: **bold**, *italic*, \\n for line breaks, \\n\\n for paragraph breaks. Output goes to ~/Desktop/<title>/ — contains <title>.pdf and <title>.<n>.png for each page. If previewAfterPage is set, a preview PDF is also generated under ~/Desktop/<title>/preview/ with <title>_preview.pdf and <title>_preview_<n>.png — pages after the specified page number are Gaussian-blurred. Returns output directory, PDF path, PNG paths, and preview paths if applicable.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args generate.Input) (*mcp.CallToolResult, generate.Output, error) {
 		return handleGenerate(ctx, req, args)
 	})

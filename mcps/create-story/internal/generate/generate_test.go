@@ -230,3 +230,60 @@ func TestRunNestedOutputDir(t *testing.T) {
 		t.Fatalf("PDF not created: %v", err)
 	}
 }
+
+func TestRunPreviewPDF(t *testing.T) {
+	dir := t.TempDir()
+	img := makeTestPNG(t, color.RGBA{R: 100, G: 150, B: 200, A: 255})
+	out, err := Run(Input{
+		Title: "Preview Test",
+		Pages: []Page{
+			{Image: img, Text: "Page one."},
+			{Image: img, Text: "Page two."},
+			{Image: img, Text: "Page three."},
+		},
+		OutputDir:        dir,
+		PreviewAfterPage: 1,
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if out.PreviewPDFPath == "" {
+		t.Fatal("previewPDFPath is empty")
+	}
+	if _, err := os.Stat(out.PreviewPDFPath); err != nil {
+		t.Fatalf("preview PDF not created: %v", err)
+	}
+	if !strings.HasSuffix(out.PreviewPDFPath, "_preview.pdf") {
+		t.Fatalf("previewPDFPath = %q, want _preview.pdf suffix", out.PreviewPDFPath)
+	}
+	if len(out.PreviewPNGPaths) != 3 {
+		t.Fatalf("previewPngPaths len = %d, want 3", len(out.PreviewPNGPaths))
+	}
+	for i, p := range out.PreviewPNGPaths {
+		if _, err := os.Stat(p); err != nil {
+			t.Fatalf("preview png %d missing: %v", i+1, err)
+		}
+		if !strings.Contains(filepath.Base(p), "_preview_") {
+			t.Fatalf("preview png %d path = %q, want _preview_ in name", i+1, p)
+		}
+	}
+}
+
+func TestRunNoPreviewByDefault(t *testing.T) {
+	dir := t.TempDir()
+	img := makeTestPNG(t, color.RGBA{R: 100, G: 150, B: 200, A: 255})
+	out, err := Run(Input{
+		Title:     "No Preview",
+		Pages:     []Page{{Image: img, Text: "text"}},
+		OutputDir: dir,
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if out.PreviewPDFPath != "" {
+		t.Fatalf("previewPDFPath = %q, want empty", out.PreviewPDFPath)
+	}
+	if len(out.PreviewPNGPaths) != 0 {
+		t.Fatalf("previewPngPaths len = %d, want 0", len(out.PreviewPNGPaths))
+	}
+}

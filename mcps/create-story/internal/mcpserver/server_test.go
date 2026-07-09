@@ -114,3 +114,29 @@ func TestHandleGenerateMultiplePages(t *testing.T) {
 		t.Fatalf("pngPaths len = %d, want 2", len(out.PNGPaths))
 	}
 }
+
+func TestHandleGenerateWithPreview(t *testing.T) {
+	img := makeTestPNG(t, color.RGBA{R: 100, G: 150, B: 200, A: 255})
+	_, out, err := handleGenerate(context.Background(), &mcp.CallToolRequest{}, generate.Input{
+		Title: "Preview Story",
+		Pages: []generate.Page{
+			{Image: img, Text: "Page one."},
+			{Image: img, Text: "Page two."},
+			{Image: img, Text: "Page three."},
+		},
+		OutputDir:        t.TempDir(),
+		PreviewAfterPage: 1,
+	})
+	if err != nil {
+		t.Fatalf("handleGenerate: %v", err)
+	}
+	if out.PreviewPDFPath == "" {
+		t.Fatal("previewPDFPath is empty")
+	}
+	if _, err := os.Stat(out.PreviewPDFPath); err != nil {
+		t.Fatalf("preview PDF not created: %v", err)
+	}
+	if len(out.PreviewPNGPaths) != 3 {
+		t.Fatalf("previewPngPaths len = %d, want 3", len(out.PreviewPNGPaths))
+	}
+}
