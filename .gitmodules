@@ -13,3 +13,6 @@
 [submodule "mcps/cover-letter-writter"]
 	path = mcps/cover-letter-writter
 	url = https://github.com/LordFarquaadtheCreator/cover-letter-writter.git
+[submodule "mcps/create-story"]
+	path = mcps/create-story
+	url = git@github.com:LordFarquaadtheCreator/create-story.git
