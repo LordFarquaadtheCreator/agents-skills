@@ -13,6 +13,7 @@ All MCP servers are defined here. Each MCP lives in its own directory. This repo
 | [`story-tools`](story-tools/) | RAG system for story generation. Scrapes blogs (Blogger, WordPress, DeviantArt), embeds into local vector store, generates stories via LLM. Exposes 9 tools: `generate_story`, `search_documents`, `scrape_blogger`, `scrape_wordpress`, `scrape_deviantart`, `process_documents`, `load_vector_db`, `save_vector_db`, `list_vector_dbs`. Requires `config.yaml` (gitignored) with LLM provider config. |
 | [`manage-job`](manage-job/) | Job application tracking via Google Sheets backend. Exposes 4 tools: `track_job`, `get_jobs`, `patch_job`, `delete_job`. Proxies to deployed Apps Script web app. Requires `SHEETS_DEPLOYMENT_ID` env var. |
 | [`deviantart-mcp`](deviantart-mcp/) | **[IN PROGRESS — not ready]** DeviantArt API integration — browse, search, galleries, collections, messages. |
+| [`resume-builder`](resume-builder/) | One-page PDF resume generation with vector-search-based content selection. Exposes 5 tools: `set_embedding_config`, `init_resume`, `get_resume_info`, `search_resume`, `generate_resume`. No LLM dependency — only needs an embedding endpoint. |
 
 ## Structure
 

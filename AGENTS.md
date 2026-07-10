@@ -9,6 +9,7 @@ This is used to track and link skills amongst different apps such as claude code
 Reusable shell scripts live in [`commands/`](commands/). See [`commands/AGENTS.md`](commands/AGENTS.md) for detailed descriptions of each command.
 
 - [`create-skill.sh`](commands/create-skill.sh) — scaffold a new skill
+- [`scaffold-mcp.sh`](commands/scaffold-mcp.sh) — scaffold a new MCP server
 - [`link-skills.sh`](commands/link-skills.sh) — symlink skills into a target agent's skills directory (e.g. `~/.agents/skills/` for Zed, `~/.devin/skills/` for Devin)
 
 ## Skills
