@@ -1,0 +1,10 @@
+{
+  "resume-builder": {
+    "command": "docker",
+    "args": ["run", "--rm", "-i", "-v", "resume-builder-data:/app", "resume-builder"]
+  },
+  "resume-builder-stdio": {
+    "command": "/Users/farquaad/agents-skills/mcps/resume-builder/resume-builder",
+    "args": []
+  }
+}
