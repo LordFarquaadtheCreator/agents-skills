@@ -1,0 +1,16 @@
+{
+  "flux2-mcp": {
+    "command": "/Users/farquaad/senor-modal-apps/flux2-mcp/flux2-mcp",
+    "args": ["mcp"],
+    "env": {
+      "FLUX2_API_URL": "https://lordfarquaadthecreator--flux2-klein-asgi-app.modal.run"
+    }
+  },
+  "flux2-cli": {
+    "command": "/Users/farquaad/senor-modal-apps/flux2-mcp/flux2-mcp",
+    "args": ["cli"],
+    "env": {
+      "FLUX2_API_URL": "https://lordfarquaadthecreator--flux2-klein-asgi-app.modal.run"
+    }
+  }
+}
