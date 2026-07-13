@@ -20,6 +20,39 @@ Usage: ./commands/create-skill.sh <skill-name> [description] [--openai]
 - `skills/<name>/SKILL.md` — frontmatter with `name` and `description`, plus an H1 heading.
 - `skills/<name>/agents/openai.yaml` — (only with `--openai`) interface metadata for OpenAI agents.
 
+## `scaffold-mcp.sh`
+
+Scaffolds a new MCP server directory under `mcps/` with Go boilerplate, Dockerfile, and config files. Initializes a local git repo.
+
+```
+Usage: ./commands/scaffold-mcp.sh <mcp-name> [description]
+```
+
+| Argument | Required | Description |
+|---|---|---|
+| `mcp-name` | Yes | Name of the MCP (used as directory, binary, and Docker image name). Must be lowercase letters, digits, and hyphens only. |
+| `description` | No | One-line description placed in `AGENTS.md` and `README.md`. |
+
+**What it creates:**
+- `mcps/<name>/.gitignore` — ignores the compiled binary
+- `mcps/<name>/go.mod` — Go module with `modelcontextprotocol/go-sdk` dependency
+- `mcps/<name>/main.go` — entry point calling `mcpserver.Run()`
+- `mcps/<name>/internal/mcpserver/server.go` — MCP server with example tool, `jsonResult` helper, input/output structs
+- `mcps/<name>/Dockerfile` — multi-stage Go build → Alpine runtime
+- `mcps/<name>/mcp-config.json` — Docker + stdio config entries
+- `mcps/<name>/AGENTS.md` — agent-facing docs template
+- `mcps/<name>/README.md` — human-facing docs template
+- Initializes a local git repo with initial commit
+
+**After scaffolding:**
+1. `go mod tidy` to download dependencies
+2. Implement tools in `internal/mcpserver/server.go`
+3. Fill in `AGENTS.md` and `README.md`
+4. Create GitHub repo, push, then add as submodule to `agents-skills`
+5. Update `mcps/AGENTS.md` with a row for the new MCP
+
+See the `scaffold-mcp` skill (`skills/scaffold-mcp/SKILL.md`) for the full workflow guide.
+
 ## `link-skills.sh`
 
 Symlinks all skills from `skills/` into a target agent's skills directory.
