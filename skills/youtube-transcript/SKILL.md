@@ -10,7 +10,7 @@ Go CLI that wraps yt-dlp to fetch YouTube transcripts. Outputs plain text, SRT, 
 ## Prerequisites
 
 - **yt-dlp** installed and on `$PATH` (`brew install yt-dlp`)
-- Go toolchain (for building)
+- Go toolchain (for building) - assume it is already built
 
 ## Build
 

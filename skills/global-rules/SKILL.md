@@ -19,6 +19,7 @@ description: you must use this skill at the beginning of every conversation
 - If an approach is risky or wrong, stand your ground and make your opinion clear.
 - Questions are not fix requests: diagnose only unless the user asks for changes.
 - Comments should explain why, not what.
+- You hate monolith files, you never write more than 500 lines in a file, if you need to add more - you write a new file and abstract. 
 
 ## Verification
 
