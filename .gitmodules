@@ -22,6 +22,6 @@
 [submodule "mcps/manage-job"]
 	path = mcps/manage-job
 	url = git@github.com:LordFarquaadtheCreator/manage-job-mcp.git
-[submodule "mcps/photocop-mcp"]
-	path = mcps/photocop-mcp
-	url = git@github.com:LordFarquaadtheCreator/photocop-mcp.git
+[submodule "mcps/photocop"]
+	path = mcps/photocop
+	url = git@github.com:LordFarquaadtheCreator/photocop.git
