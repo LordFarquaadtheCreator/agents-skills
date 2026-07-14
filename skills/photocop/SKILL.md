@@ -1,11 +1,11 @@
 ---
 name: photocop
-description: Copy files dir-to-dir via the photocop-mcp MCP, renaming each to YYYY-MM-DD@HH.MM.SS.EXT by mtime. Use when Fahad wants to copy photos/files and rename by timestamp.
+description: Copy files dir-to-dir via the photocop MCP, renaming each to YYYY-MM-DD@HH.MM.SS.EXT by mtime. Use when Fahad wants to copy photos/files and rename by timestamp.
 ---
 
 # PhotoCopy
 
-Copy files from one directory to another, renaming each to `YYYY-MM-DD@HH.MM.SS.EXT` based on its mtime. Backed by the `photocop-mcp` MCP server.
+Copy files from one directory to another, renaming each to `YYYY-MM-DD@HH.MM.SS.EXT` based on its mtime. Backed by the `photocop` MCP server (`photocop mcp` subcommand).
 
 ## When to use
 
