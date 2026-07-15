@@ -12,7 +12,7 @@ Generate styled PDF cover letters via the `cover-letter-writter` MCP server. Pro
 1. **Check for existing profiles:** `list_profiles` — if Fahad's profile exists, skip to step 3
 2. **Create profile if needed:** `create_profile` with name, email, address, phone. Save the returned `profileId`.
 3. **Draft the body:** Write the cover letter body text. Ask Fahad for the job posting or company details if not provided. Body is plain text — no formatting markers needed.
-4. **Generate:** `generate_cover_letter` with `profileId` + `body`. Returns absolute file path.
+4. **Generate:** `generate_cover_letter` with `profileId` + `body`. Optional `to` sets the salutation line (e.g. `Dear Hiring Manager,`); defaults to `To Whom it May Concern,`. Optional `template` selects the PDF template (currently `green-minimal` only). Returns absolute file path.
 5. **Record:** Generation is auto-recorded in history. No extra step needed.
 
 ## Tools
@@ -31,7 +31,7 @@ Generate styled PDF cover letters via the `cover-letter-writter` MCP server. Pro
 
 - Ask for the job posting or company name if not given
 - Keep to 3-4 paragraphs: intro, relevant experience, why this company, closing
-- Plain text only — the PDF template handles layout, salutation ("To Whom it May Concern,"), date, and signature ("Best regards, \<Name\>")
+- Plain text only — the PDF template handles layout, date, and signature ("Best regards, \<Name\>"). Salutation defaults to "To Whom it May Concern," — override via the `to` field
 - Smart quotes and em dashes are fine — sanitized to ASCII automatically
 
 ## Output
