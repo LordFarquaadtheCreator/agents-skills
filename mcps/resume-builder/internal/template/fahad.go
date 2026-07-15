@@ -33,6 +33,16 @@ func (t *FahadTemplate) BottomMargin() float64 {
 	return fahadBottomMargin
 }
 
+// MaxFontScale ceilings body text (10pt base) at 16pt.
+func (t *FahadTemplate) MaxFontScale() float64 {
+	return 16.0 / 10.0 // 1.6
+}
+
+// MinFontScale floors body text (10pt base) at 11pt.
+func (t *FahadTemplate) MinFontScale() float64 {
+	return 11.0 / 10.0 // 1.1
+}
+
 // darkgray matches LaTeX RGB(38,38,38)
 const darkGrayR = 38
 const darkGrayG = 38
@@ -56,9 +66,9 @@ func (t *FahadTemplate) Render(pdf *fpdf.Fpdf, data resume.ResumeData, fontScale
 	pdf.SetFont("Times", "B", t.scale(24, fontScale))
 	pdf.SetTextColor(0, 0, 0)
 	if data.Name != "" {
-		pdf.CellFormat(0, 10, tr(data.Name), "", 1, "C", false, 0, "")
+		pdf.CellFormat(0, t.scale(10, fontScale), tr(data.Name), "", 1, "C", false, 0, "")
 	}
-	pdf.Ln(1)
+	pdf.Ln(t.scale(1, fontScale))
 
 	// Contact line: location | email | linkedin | github | website
 	pdf.SetFont("Times", "", t.scale(9, fontScale))
@@ -80,9 +90,9 @@ func (t *FahadTemplate) Render(pdf *fpdf.Fpdf, data resume.ResumeData, fontScale
 	}
 	if len(parts) > 0 {
 		contactLine := strings.Join(parts, " | ")
-		pdf.CellFormat(0, 5, contactLine, "", 1, "C", false, 0, "")
+		pdf.CellFormat(0, t.scale(5, fontScale), contactLine, "", 1, "C", false, 0, "")
 	}
-	pdf.Ln(2)
+	pdf.Ln(t.scale(2, fontScale))
 
 	// ---------- Sections ----------
 	// Order: Education → Skills → Experience → Projects
@@ -91,7 +101,7 @@ func (t *FahadTemplate) Render(pdf *fpdf.Fpdf, data resume.ResumeData, fontScale
 		for _, edu := range data.Education {
 			t.renderEducationEntry(pdf, edu, fontScale, tr, leftX, rightX)
 		}
-		pdf.Ln(2)
+		pdf.Ln(t.scale(2, fontScale))
 	}
 
 	if len(data.Skills) > 0 {
@@ -99,7 +109,7 @@ func (t *FahadTemplate) Render(pdf *fpdf.Fpdf, data resume.ResumeData, fontScale
 		for _, skill := range data.Skills {
 			t.renderSkillEntry(pdf, skill, fontScale, tr, leftX, rightX)
 		}
-		pdf.Ln(2)
+		pdf.Ln(t.scale(2, fontScale))
 	}
 
 	if len(data.Experiences) > 0 {
@@ -107,7 +117,7 @@ func (t *FahadTemplate) Render(pdf *fpdf.Fpdf, data resume.ResumeData, fontScale
 		for _, exp := range data.Experiences {
 			t.renderExperienceEntry(pdf, exp, fontScale, tr, leftX, rightX)
 		}
-		pdf.Ln(2)
+		pdf.Ln(t.scale(2, fontScale))
 	}
 
 	if len(data.Projects) > 0 {
@@ -124,12 +134,12 @@ func (t *FahadTemplate) renderSectionHeader(pdf *fpdf.Fpdf, title string, fontSc
 	pdf.SetFont("Times", "B", t.scale(13, fontScale))
 	pdf.SetTextColor(0, 0, 0)
 	pdf.SetX(fahadMargin)
-	pdf.CellFormat(0, 6, tr(title), "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, t.scale(6, fontScale), tr(title), "", 1, "L", false, 0, "")
 	// horizontal rule
 	y := pdf.GetY()
 	pdf.SetDrawColor(0, 0, 0)
 	pdf.Line(fahadMargin, y, fahadPageWidth-fahadMargin, y)
-	pdf.Ln(2)
+	pdf.Ln(t.scale(2, fontScale))
 }
 
 func (t *FahadTemplate) renderEducationEntry(pdf *fpdf.Fpdf, edu resume.Education, fontScale float64, tr func(string) string, leftX, rightX float64) {
@@ -160,7 +170,7 @@ func (t *FahadTemplate) renderEducationEntry(pdf *fpdf.Fpdf, edu resume.Educatio
 	}
 
 	t.renderTwoColumnRow(pdf, instText, edu.Link, degreeText, rightText, fontScale, leftX, rightX)
-	pdf.Ln(1)
+	pdf.Ln(t.scale(1, fontScale))
 }
 
 func (t *FahadTemplate) renderSkillEntry(pdf *fpdf.Fpdf, skill resume.SkillGroup, fontScale float64, tr func(string) string, leftX, rightX float64) {
@@ -182,12 +192,12 @@ func (t *FahadTemplate) renderSkillEntry(pdf *fpdf.Fpdf, skill resume.SkillGroup
 	pdf.SetFont("Times", "B", t.scale(10, fontScale))
 	pdf.SetTextColor(0, 0, 0)
 	catW := pdf.GetStringWidth(categoryText)
-	pdf.CellFormat(catW, 5, categoryText, "", 0, "L", false, 0, "")
+	pdf.CellFormat(catW, t.scale(5, fontScale), categoryText, "", 0, "L", false, 0, "")
 
 	pdf.SetFont("Times", "", t.scale(10, fontScale))
 	pdf.SetTextColor(darkGrayR, darkGrayG, darkGrayB)
-	pdf.CellFormat(0, 5, valuesText, "", 1, "L", false, 0, "")
-	pdf.Ln(0.5)
+	pdf.CellFormat(0, t.scale(5, fontScale), valuesText, "", 1, "L", false, 0, "")
+	pdf.Ln(t.scale(0.5, fontScale))
 }
 
 func (t *FahadTemplate) renderExperienceEntry(pdf *fpdf.Fpdf, exp resume.Experience, fontScale float64, tr func(string) string, leftX, rightX float64) {
@@ -228,7 +238,7 @@ func (t *FahadTemplate) renderExperienceEntry(pdf *fpdf.Fpdf, exp resume.Experie
 	}
 
 	t.renderTwoColumnRow(pdf, companyText, exp.Link, roleText, rightText, fontScale, leftX, rightX)
-	pdf.Ln(0.5)
+	pdf.Ln(t.scale(0.5, fontScale))
 
 	// Bullets
 	for _, bullet := range exp.Bullets {
@@ -237,7 +247,7 @@ func (t *FahadTemplate) renderExperienceEntry(pdf *fpdf.Fpdf, exp resume.Experie
 		}
 		t.renderBullet(pdf, bullet, fontScale, tr, leftX)
 	}
-	pdf.Ln(1)
+	pdf.Ln(t.scale(1, fontScale))
 }
 
 func (t *FahadTemplate) renderProjectEntry(pdf *fpdf.Fpdf, proj resume.Project, fontScale float64, tr func(string) string, leftX, rightX float64) {
@@ -262,7 +272,7 @@ func (t *FahadTemplate) renderProjectEntry(pdf *fpdf.Fpdf, proj resume.Project, 
 	}
 
 	t.renderTwoColumnRow(pdf, nameText, proj.Link, techText, rightText, fontScale, leftX, rightX)
-	pdf.Ln(0.5)
+	pdf.Ln(t.scale(0.5, fontScale))
 
 	// Bullets
 	for _, bullet := range proj.Bullets {
@@ -271,7 +281,7 @@ func (t *FahadTemplate) renderProjectEntry(pdf *fpdf.Fpdf, proj resume.Project, 
 		}
 		t.renderBullet(pdf, bullet, fontScale, tr, leftX)
 	}
-	pdf.Ln(1)
+	pdf.Ln(t.scale(1, fontScale))
 }
 
 func (t *FahadTemplate) renderBullet(pdf *fpdf.Fpdf, text string, fontScale float64, tr func(string) string, leftX float64) {
@@ -279,11 +289,11 @@ func (t *FahadTemplate) renderBullet(pdf *fpdf.Fpdf, text string, fontScale floa
 	pdf.SetTextColor(darkGrayR, darkGrayG, darkGrayB)
 	pdf.SetX(leftX + 3)
 	// small bullet marker
-	pdf.CellFormat(3, 4, tr("\u2022"), "", 0, "L", false, 0, "")
+	pdf.CellFormat(3, t.scale(4, fontScale), tr("\u2022"), "", 0, "L", false, 0, "")
 	// text wraps within remaining width
 	textW := fahadContentWidth - 6
-	pdf.MultiCell(textW, 4.5, tr(text), "", "L", false)
-	pdf.Ln(0.2)
+	pdf.MultiCell(textW, t.scale(4.5, fontScale), tr(text), "", "L", false)
+	pdf.Ln(t.scale(0.2, fontScale))
 }
 
 // renderTwoColumnRow draws left text (bold) and right text (italic) on one line
@@ -326,36 +336,36 @@ func (t *FahadTemplate) renderTwoColumnRow(pdf *fpdf.Fpdf, nameText, nameLink, s
 		pdf.SetFont("Times", "B", t.scale(10, fontScale))
 		pdf.SetXY(leftX, y)
 		if nameText != "" {
-			pdf.CellFormat(nameW, 5, nameText, "", 0, "L", false, 0, nameLink)
+			pdf.CellFormat(nameW, t.scale(5, fontScale), nameText, "", 0, "L", false, 0, nameLink)
 		}
 		if suffixText != "" {
 			pdf.SetX(leftX + nameW)
-			pdf.CellFormat(sepW, 5, " | ", "", 0, "L", false, 0, "")
-			pdf.CellFormat(suffixW, 5, suffixText, "", 0, "L", false, 0, "")
+			pdf.CellFormat(sepW, t.scale(5, fontScale), " | ", "", 0, "L", false, 0, "")
+			pdf.CellFormat(suffixW, t.scale(5, fontScale), suffixText, "", 0, "L", false, 0, "")
 		}
 		// Right
 		pdf.SetFont("Times", "I", t.scale(9, fontScale))
 		pdf.SetXY(rightX-rightW, y)
 		if rightText != "" {
-			pdf.CellFormat(rightW, 5, rightText, "", 1, "L", false, 0, "")
+			pdf.CellFormat(rightW, t.scale(5, fontScale), rightText, "", 1, "L", false, 0, "")
 		}
 	} else {
 		// Stack: left on first line, right on second
 		pdf.SetFont("Times", "B", t.scale(10, fontScale))
 		pdf.SetX(leftX)
 		if nameText != "" {
-			pdf.CellFormat(nameW, 5, nameText, "", 0, "L", false, 0, nameLink)
+			pdf.CellFormat(nameW, t.scale(5, fontScale), nameText, "", 0, "L", false, 0, nameLink)
 		}
 		if suffixText != "" {
-			pdf.CellFormat(sepW, 5, " | ", "", 0, "L", false, 0, "")
-			pdf.CellFormat(0, 5, suffixText, "", 1, "L", false, 0, "")
+			pdf.CellFormat(sepW, t.scale(5, fontScale), " | ", "", 0, "L", false, 0, "")
+			pdf.CellFormat(0, t.scale(5, fontScale), suffixText, "", 1, "L", false, 0, "")
 		} else {
-			pdf.Ln(5)
+			pdf.Ln(t.scale(5, fontScale))
 		}
 		pdf.SetFont("Times", "I", t.scale(9, fontScale))
 		pdf.SetX(leftX)
 		if rightText != "" {
-			pdf.CellFormat(0, 4, rightText, "", 1, "R", false, 0, "")
+			pdf.CellFormat(0, t.scale(4, fontScale), rightText, "", 1, "R", false, 0, "")
 		}
 	}
 }
