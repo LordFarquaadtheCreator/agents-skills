@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/LordFarquaadtheCreator/resume-builder/internal/resume"
@@ -79,6 +81,12 @@ func Run(data resume.ResumeData, templateName, outputDir string) (Output, error)
 		log.Printf("generate.Run: ERROR writing PDF: %v", err)
 		return Output{}, fmt.Errorf("write pdf: %w", err)
 	}
+	// fpdf v0.9.0 writes link annotation rects as [x, top, x+w, bottom]
+	// instead of [x, bottom, x+w, top]. macOS Preview ignores inverted rects.
+	// Fix: swap y1 and y2 in every /Rect inside /Annots.
+	if err := fixLinkRects(outPath); err != nil {
+		log.Printf("generate.Run: WARNING failed to fix link rects: %v", err)
+	}
 	log.Printf("generate.Run: PDF written to %s", outPath)
 
 	return Output{
@@ -89,7 +97,9 @@ func Run(data resume.ResumeData, templateName, outputDir string) (Output, error)
 	}, nil
 }
 
-// fitToPage runs the measure-trim-scale loop.
+// fitToPage runs the measure-scale-trim loop.
+// Phase 1: scale UP to fill page when content is sparse (non-destructive).
+// Phase 2: scale DOWN + trim content when content overflows (destructive last resort).
 // Returns the fitted resume data and info about what was dropped.
 func fitToPage(data resume.ResumeData, tmpl template.Renderer) (resume.ResumeData, TrimInfo) {
 	info := TrimInfo{
@@ -97,8 +107,24 @@ func fitToPage(data resume.ResumeData, tmpl template.Renderer) (resume.ResumeDat
 	}
 
 	maxY := tmpl.PageHeight() - tmpl.BottomMargin()
-	fontFloor := 11.0 / 10.5 // ~1.0476 — floor at 11pt from 10.5pt base bullet
+	maxScale := tmpl.MaxFontScale()
+	minScale := tmpl.MinFontScale()
 
+	// --- Phase 1: scale up to fill page ---
+	// Binary search for the largest scale that still fits, in increments of 0.05.
+	for info.FontScale+0.05 <= maxScale {
+		next := info.FontScale + 0.05
+		pdf := fpdf.New("P", "mm", "Letter", "")
+		endY := tmpl.Render(pdf, data, next)
+		if endY <= maxY {
+			info.FontScale = next
+		} else {
+			break
+		}
+	}
+	log.Printf("fitToPage: scale-up settled at %.2f", info.FontScale)
+
+	// --- Phase 2: scale down + trim if still overflowing ---
 	for {
 		pdf := fpdf.New("P", "mm", "Letter", "")
 		endY := tmpl.Render(pdf, data, info.FontScale)
@@ -129,7 +155,7 @@ func fitToPage(data resume.ResumeData, tmpl template.Renderer) (resume.ResumeDat
 		}
 
 		// Pass 5: font scaling (last resort)
-		if info.FontScale > fontFloor {
+		if info.FontScale > minScale {
 			info.FontScale -= 0.05
 			continue
 		}
@@ -189,4 +215,35 @@ func dropLastProject(data *resume.ResumeData, info *TrimInfo) bool {
 	info.DroppedProjects = append(info.DroppedProjects, last.Name)
 	data.Projects = data.Projects[:len(data.Projects)-1]
 	return true
+}
+
+// linkRectRe matches /Rect [x1 y1 x2 y2] inside link annotations.
+var linkRectRe = regexp.MustCompile(`/Rect \[([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)\]`)
+
+// fixLinkRects post-processes a PDF file to swap inverted y-coordinates in
+// link annotation /Rect entries. go-pdf/fpdf v0.9.0 writes rects as
+// [x, top, x+w, bottom] but PDF spec requires [x, bottom, x+w, top].
+func fixLinkRects(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read pdf: %w", err)
+	}
+
+	fixed := linkRectRe.ReplaceAllStringFunc(string(data), func(s string) string {
+		m := linkRectRe.FindStringSubmatch(s)
+		x1, _ := strconv.ParseFloat(m[1], 64)
+		y1, _ := strconv.ParseFloat(m[2], 64)
+		x2, _ := strconv.ParseFloat(m[3], 64)
+		y2, _ := strconv.ParseFloat(m[4], 64)
+		// swap y1 and y2 if inverted (top > bottom in PDF coords)
+		if y1 > y2 {
+			y1, y2 = y2, y1
+		}
+		return fmt.Sprintf("/Rect [%.2f %.2f %.2f %.2f]", x1, y1, x2, y2)
+	})
+
+	if err := os.WriteFile(path, []byte(fixed), 0644); err != nil {
+		return fmt.Errorf("write pdf: %w", err)
+	}
+	return nil
 }
