@@ -137,13 +137,14 @@ func (t *FahadTemplate) renderEducationEntry(pdf *fpdf.Fpdf, edu resume.Educatio
 	pdf.SetTextColor(0, 0, 0)
 	pdf.SetX(leftX)
 
-	// Left: Institution | Degree (italic)
-	leftText := ""
+	// Left: Institution (linked) | Degree
+	instText := ""
 	if edu.Institution != "" {
-		leftText = tr(edu.Institution)
+		instText = tr(edu.Institution)
 	}
+	degreeText := ""
 	if edu.Degree != "" {
-		leftText += " | " + tr(edu.Degree)
+		degreeText = tr(edu.Degree)
 	}
 
 	// Right: Location | EndDate
@@ -158,7 +159,7 @@ func (t *FahadTemplate) renderEducationEntry(pdf *fpdf.Fpdf, edu resume.Educatio
 		rightText += tr(edu.End)
 	}
 
-	t.renderTwoColumnRow(pdf, leftText, rightText, fontScale, leftX, rightX)
+	t.renderTwoColumnRow(pdf, instText, edu.Link, degreeText, rightText, fontScale, leftX, rightX)
 	pdf.Ln(1)
 }
 
@@ -194,13 +195,14 @@ func (t *FahadTemplate) renderExperienceEntry(pdf *fpdf.Fpdf, exp resume.Experie
 	pdf.SetFont("Times", "B", t.scale(10, fontScale))
 	pdf.SetTextColor(0, 0, 0)
 
-	// Left: Company | Role (italic)
-	leftText := ""
+	// Left: Company (linked) | Role
+	companyText := ""
 	if exp.Company != "" {
-		leftText = tr(exp.Company)
+		companyText = tr(exp.Company)
 	}
+	roleText := ""
 	if exp.Role != "" {
-		leftText += " | " + tr(exp.Role)
+		roleText = tr(exp.Role)
 	}
 
 	// Right: Location | EndDate -- StartDate
@@ -225,7 +227,7 @@ func (t *FahadTemplate) renderExperienceEntry(pdf *fpdf.Fpdf, exp resume.Experie
 		rightText += dateRange
 	}
 
-	t.renderTwoColumnRow(pdf, leftText, rightText, fontScale, leftX, rightX)
+	t.renderTwoColumnRow(pdf, companyText, exp.Link, roleText, rightText, fontScale, leftX, rightX)
 	pdf.Ln(0.5)
 
 	// Bullets
@@ -243,13 +245,14 @@ func (t *FahadTemplate) renderProjectEntry(pdf *fpdf.Fpdf, proj resume.Project, 
 	pdf.SetFont("Times", "B", t.scale(10, fontScale))
 	pdf.SetTextColor(0, 0, 0)
 
-	// Left: Name | Tech (italic)
-	leftText := ""
+	// Left: Name (linked) | Tech
+	nameText := ""
 	if proj.Name != "" {
-		leftText = tr(proj.Name)
+		nameText = tr(proj.Name)
 	}
+	techText := ""
 	if proj.Tech != "" {
-		leftText += " | " + tr(proj.Tech)
+		techText = tr(proj.Tech)
 	}
 
 	// Right: Date
@@ -258,7 +261,7 @@ func (t *FahadTemplate) renderProjectEntry(pdf *fpdf.Fpdf, proj resume.Project, 
 		rightText = tr(proj.Date)
 	}
 
-	t.renderTwoColumnRow(pdf, leftText, rightText, fontScale, leftX, rightX)
+	t.renderTwoColumnRow(pdf, nameText, proj.Link, techText, rightText, fontScale, leftX, rightX)
 	pdf.Ln(0.5)
 
 	// Bullets
@@ -285,17 +288,26 @@ func (t *FahadTemplate) renderBullet(pdf *fpdf.Fpdf, text string, fontScale floa
 
 // renderTwoColumnRow draws left text (bold) and right text (italic) on one line
 // using a two-column layout. Left is left-aligned, right is right-aligned.
-func (t *FahadTemplate) renderTwoColumnRow(pdf *fpdf.Fpdf, leftText, rightText string, fontScale float64, leftX, rightX float64) {
-	if leftText == "" && rightText == "" {
+// nameLink, when non-empty, turns the name portion into a clickable external hyperlink.
+// suffix (e.g. " | Role") stays plain text — only the name is linked.
+func (t *FahadTemplate) renderTwoColumnRow(pdf *fpdf.Fpdf, nameText, nameLink, suffixText, rightText string, fontScale float64, leftX, rightX float64) {
+	if nameText == "" && suffixText == "" && rightText == "" {
 		return
 	}
 
 	// Calculate widths
 	pdf.SetFont("Times", "B", t.scale(10, fontScale))
-	leftW := 0.0
-	if leftText != "" {
-		leftW = pdf.GetStringWidth(leftText)
+	nameW := 0.0
+	if nameText != "" {
+		nameW = pdf.GetStringWidth(nameText)
 	}
+	sepW := 0.0
+	suffixW := 0.0
+	if suffixText != "" {
+		sepW = pdf.GetStringWidth(" | ")
+		suffixW = pdf.GetStringWidth(suffixText)
+	}
+	leftW := nameW + sepW + suffixW
 
 	pdf.SetFont("Times", "I", t.scale(9, fontScale))
 	rightW := 0.0
@@ -310,11 +322,16 @@ func (t *FahadTemplate) renderTwoColumnRow(pdf *fpdf.Fpdf, leftText, rightText s
 	// If both fit, render side by side
 	if leftW+rightW+gap <= availW {
 		y := pdf.GetY()
-		// Left
+		// Left: name (linked) + separator + suffix
 		pdf.SetFont("Times", "B", t.scale(10, fontScale))
 		pdf.SetXY(leftX, y)
-		if leftText != "" {
-			pdf.CellFormat(leftW, 5, leftText, "", 0, "L", false, 0, "")
+		if nameText != "" {
+			pdf.CellFormat(nameW, 5, nameText, "", 0, "L", false, 0, nameLink)
+		}
+		if suffixText != "" {
+			pdf.SetX(leftX + nameW)
+			pdf.CellFormat(sepW, 5, " | ", "", 0, "L", false, 0, "")
+			pdf.CellFormat(suffixW, 5, suffixText, "", 0, "L", false, 0, "")
 		}
 		// Right
 		pdf.SetFont("Times", "I", t.scale(9, fontScale))
@@ -326,8 +343,14 @@ func (t *FahadTemplate) renderTwoColumnRow(pdf *fpdf.Fpdf, leftText, rightText s
 		// Stack: left on first line, right on second
 		pdf.SetFont("Times", "B", t.scale(10, fontScale))
 		pdf.SetX(leftX)
-		if leftText != "" {
-			pdf.CellFormat(0, 5, leftText, "", 1, "L", false, 0, "")
+		if nameText != "" {
+			pdf.CellFormat(nameW, 5, nameText, "", 0, "L", false, 0, nameLink)
+		}
+		if suffixText != "" {
+			pdf.CellFormat(sepW, 5, " | ", "", 0, "L", false, 0, "")
+			pdf.CellFormat(0, 5, suffixText, "", 1, "L", false, 0, "")
+		} else {
+			pdf.Ln(5)
 		}
 		pdf.SetFont("Times", "I", t.scale(9, fontScale))
 		pdf.SetX(leftX)
