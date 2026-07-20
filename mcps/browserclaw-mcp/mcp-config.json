@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "browserclaw": {
+      "command": "node",
+      "args": ["/opt/browserclaw-mcp/dist/index.js"],
+      "env": {
+        "PLAYWRIGHT_BROWSERS_PATH": "/usr/lib/chromium"
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "browserclaw-mcp",
+  "version": "0.1.0",
+  "description": "MCP server wrapping browserclaw for AI agent browser automation",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": { "browserclaw-mcp": "dist/index.js" },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc && node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "browserclaw": "^0.19.8",
+    "playwright": "^1.61.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}
