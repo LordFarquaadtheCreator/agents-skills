@@ -29,7 +29,7 @@ Only one tool: `generate_video`
 | `num_inference_steps` | no | 30 | Denoising steps. 30 for full model, 8 for distilled. |
 | `output_filename` | no | auto | Custom filename (without extension). `.mp4` is forced. |
 | `output_mode` | no | `file` | `file` (save to disk), `base64` (return inline as VideoContent), `both` |
-| `output_dir` | no | `./output.private/mcp_output` | Directory for saved videos when mode is file/both |
+| `output_dir` | no | `/tmp/create-video` | Directory for saved videos when mode is file/both |
 | `poll_interval_ms` | no | 5000 | Polling interval in milliseconds |
 | `poll_timeout_sec` | no | 600 | Max time to wait for generation in seconds |
 

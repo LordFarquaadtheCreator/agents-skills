@@ -35,7 +35,7 @@ Generate images via the `create-image` MCP server. Backed by Modal-hosted ComfyU
 | `repeat` | no | 1 | Generate N images with incrementing seeds. Filenames get `_v2`, `_v3` suffixes. |
 | `output_filename` | no | auto | Custom filename (without extension). `.png` is forced. |
 | `output_mode` | no | `file` | `file` (save to disk), `base64` (return inline as ImageContent), `both` |
-| `output_dir` | no | `./output.private/mcp_output` | Directory for saved images when mode is file/both |
+| `output_dir` | no | `/tmp/create-image` | Directory for saved images when mode is file/both |
 
 ## Timing
 
@@ -43,7 +43,7 @@ Generate images via the `create-image` MCP server. Backed by Modal-hosted ComfyU
 
 ## Output
 
-Saved to `./output.private/mcp_output/<filename>.png` relative to the MCP server's cwd (configurable via `output_dir`). In `base64` or `both` mode, also returned inline as ImageContent.
+Saved to `/tmp/create-image/<filename>.png` (configurable via `output_dir`). In `base64` or `both` mode, also returned inline as ImageContent.
 
 ## Tips
 

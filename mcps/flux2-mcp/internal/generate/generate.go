@@ -13,7 +13,7 @@ import (
 	"mcps/flux2-mcp/internal/fluxapi"
 )
 
-const DefaultOutputDir = "./output.private/mcp_output"
+const DefaultOutputDir = "/tmp/flux2"
 
 type Input struct {
 	Prompt              string     `json:"prompt" jsonschema:"required,Text prompt for generation. Be descriptive — include style, subject, composition, lighting."`
@@ -28,7 +28,7 @@ type Input struct {
 	NegativePrompt      string     `json:"negative_prompt,omitempty" jsonschema:"Negative prompt. Ignored when guidance_scale=1.0 (CFG disabled)."`
 	OutputFilename      string     `json:"output_filename,omitempty" jsonschema:"Custom output filename (without extension). .png is forced. Default: auto-generated."`
 	OutputMode          string     `json:"output_mode,omitempty" jsonschema:"How to return images: file (save to disk), base64 (return inline), both. Default: file."`
-	OutputDir           string     `json:"output_dir,omitempty" jsonschema:"Directory for saved images. Default: ./output.private/mcp_output"`
+	OutputDir           string     `json:"output_dir,omitempty" jsonschema:"Directory for saved images. Default: /tmp/flux2"`
 	Repeat              int        `json:"repeat,omitempty" jsonschema:"Generate N images with incrementing seeds. Default: 1."`
 }
 
