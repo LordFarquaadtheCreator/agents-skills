@@ -1,0 +1,10 @@
+{
+  "captioner": {
+    "command": "docker",
+    "args": ["run", "--rm", "-i", "-v", "/tmp/captions:/tmp/captions", "captioner"]
+  },
+  "captioner-stdio": {
+    "command": "/Users/farquaad/agents-skills/mcps/captioner/captioner",
+    "args": []
+  }
+}
