@@ -1,0 +1,16 @@
+{
+  "patreon": {
+    "command": "docker",
+    "args": ["run", "--rm", "-i", "-e", "PATREON_ACCESS_TOKEN", "patreon-mcp-server"],
+    "env": {
+      "PATREON_ACCESS_TOKEN": "YOUR_PATREON_CREATOR_ACCESS_TOKEN"
+    }
+  },
+  "patreon-stdio": {
+    "command": "uv",
+    "args": ["run", "--directory", "/Users/farquaad/agents-skills/mcps/patreon-mcp-server", "src/patreon_mcp_server/server.py"],
+    "env": {
+      "PATREON_ACCESS_TOKEN": "YOUR_PATREON_CREATOR_ACCESS_TOKEN"
+    }
+  }
+}

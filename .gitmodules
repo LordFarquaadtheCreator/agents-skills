@@ -25,3 +25,6 @@
 [submodule "mcps/photocop"]
 	path = mcps/photocop
 	url = git@github.com:LordFarquaadtheCreator/photocop.git
+[submodule "mcps/patreon-mcp-server"]
+	path = mcps/patreon-mcp-server
+	url = git@github.com:KyuRish/patreon-mcp-server.git
