@@ -9,7 +9,7 @@ Generate images via the `create-image` MCP server. Backed by Modal-hosted ComfyU
 
 ## Workflow
 
-1. **List LoRAs:** `list_loras` — mandatory before generating. Returns filenames, types, keywords, recommended strengths. Use `keyword` or `type` filters to narrow.
+1. **List LoRAs:** `list_loras` — mandatory before generating. Returns filenames, types, keywords, recommended strengths. Use `keyword` or `type` filters to narrow. Paginated 20 per page via opaque cursor — pass `next_cursor` from a prior response as `cursor` to fetch the next page; keep calling until `has_more=false`.
 2. **(Optional) List base models:** `list_base_models` — if you need to check available base models.
 3. **Generate:** `generate_image` with positive prompt + exactly 3 LoRA slots. All 3 slots required — fill unused with any LoRA at strength 0.0.
 
