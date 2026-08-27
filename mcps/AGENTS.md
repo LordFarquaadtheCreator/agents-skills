@@ -17,7 +17,7 @@ All MCP servers are defined here. Each MCP lives in its own directory. This repo
 | [`resume-builder`](resume-builder/) | One-page PDF resume generation with vector-search-based content selection. Exposes 5 tools: `set_embedding_config`, `init_resume`, `get_resume_info`, `search_resume`, `generate_resume`. No LLM dependency — only needs an embedding endpoint. |
 | [`photocop`](photocop/) | Copy files dir-to-dir, renaming each to `YYYY-MM-DD@HH.MM.SS.EXT` by mtime. Single binary: `photocop copy` (CLI) + `photocop mcp` (MCP server). Exposes `copy_files` tool with `dry_run` preview. `_N` collision suffix, hidden files skipped, mtime preserved. |
 | [`captioner`](captioner/) | Image captioning via Go + opentype. Exposes `caption` tool — composites image with caption text on black bar below. Font fixed 16pt, bar grows to fit. macOS-only (uses `/Library/Fonts/Arial Unicode.ttf`). |
-| [`patreon-mcp-server`](patreon-mcp-server/) | Patreon creator API MCP (read-only). Six tools: `fetch_identity`, `fetch_campaigns`, `fetch_campaign`, `fetch_members`, `fetch_posts`, `fetch_post`. Python + FastMCP. Requires `PATREON_ACCESS_TOKEN`. Upstream: KyuRish/patreon-mcp-server. **Exception** — third-party repo, not forked. `AGENTS.md`, `Dockerfile`, `mcp-config.json` live as siblings (`patreon-mcp-server.AGENTS.md`, `patreon-mcp-server.Dockerfile`, `patreon-mcp-server.mcp-config.json`) tracked in this parent repo, not inside the submodule. |
+| [`patreon-mcp-server`](patreon-mcp-server/) | Patreon creator API MCP (read-only). Six tools: `fetch_identity`, `fetch_campaigns`, `fetch_campaign`, `fetch_members`, `fetch_posts`, `fetch_post`. Python + FastMCP. Requires `PATREON_ACCESS_TOKEN`. Upstream: KyuRish/patreon-mcp-server. **Exception** — third-party repo, not forked. `AGENTS.md` and `mcp-config.json` live as siblings (`patreon-mcp-server.AGENTS.md`, `patreon-mcp-server.mcp-config.json`) tracked in this parent repo, not inside the submodule. |
 
 ## Structure
 
@@ -27,7 +27,6 @@ mcps/
 └── <mcp-name>/
     ├── README.md           # comprehensive docs
     ├── AGENTS.md           # agent-facing instructions
-    ├── Dockerfile          # builds and runs the MCP server
     └── mcp-config.json     # copy-pastable MCP config entry
 ```
 
@@ -35,5 +34,5 @@ mcps/
 
 - Each MCP is a git submodule under `mcps/` — this is the canonical copy.
 - Other repos that need an MCP should symlink to `~/agents-skills/mcps/<name>` and gitignore the symlink path. Do not track separate submodule pointers in consumer repos.
-- Each MCP should have a `README.md` (human-facing), `AGENTS.md` (agent-facing), `Dockerfile`, and `mcp-config.json`
+- Each MCP should have a `README.md` (human-facing), `AGENTS.md` (agent-facing), and `mcp-config.json`
 - When adding a new MCP submodule, update this file and `AGENTS.md` at the repo root

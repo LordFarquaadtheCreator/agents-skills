@@ -37,12 +37,6 @@ No LLM dependency. Only needs an embedding endpoint (e.g. LM Studio).
 go build -o resume-builder .
 ```
 
-## Docker
-
-```bash
-docker build -t resume-builder .
-```
-
 ## Run
 
 No env vars required. Data files (`resume.json`, `vectors.json`, `chunks.json`, `embedding_config.json`) stored next to executable.
@@ -53,7 +47,7 @@ No env vars required. Data files (`resume.json`, `vectors.json`, `chunks.json`, 
 
 ## MCP Config
 
-Copy `mcp-config.json` into the agent's MCP config. For Docker, mount a volume so data files persist.
+Copy `mcp-config.json` into the agent's MCP config.
 
 ## Agent Workflow
 

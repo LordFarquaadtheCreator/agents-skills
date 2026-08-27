@@ -17,7 +17,7 @@ Scaffold a new MCP server under `mcps/` following the patterns used by existing 
 
 Ask the user for:
 
-1. **MCP name** — lowercase, hyphens only (e.g. `my-cool-mcp`). Used as directory name, Go binary name, and Docker image name.
+1. **MCP name** — lowercase, hyphens only (e.g. `my-cool-mcp`). Used as directory name and Go binary name.
 2. **Description** — one-line description of what the MCP does.
 3. **Tool names + descriptions** — what tools the MCP should expose. Each tool needs a name, description, and input params.
 4. **Env vars** — any required environment variables (e.g. API keys, endpoints).
@@ -35,7 +35,6 @@ This creates:
 mcps/<mcp-name>/
 ├── .gitignore
 ├── AGENTS.md
-├── Dockerfile
 ├── README.md
 ├── go.mod
 ├── main.go
@@ -134,22 +133,14 @@ Add an `internal/AGENTS.md` listing the packages. See `mcps/create-story/interna
 
 ## Step 4: Update mcp-config.json
 
-The scaffold creates a basic `mcp-config.json` with both Docker and stdio entries. Update it:
+The scaffold creates a basic `mcp-config.json` with a stdio entry. Update it:
 
 - Add env vars to the `env` block if needed
-- Adjust Docker volume mounts if the MCP needs filesystem access
-- The stdio entry uses `~/agents-skills/mcps/<name>/<name>` as the binary path — correct if the binary name differs
+- The entry uses `~/agents-skills/mcps/<name>/<name>` as the binary path — correct if the binary name differs
 
 Example (from `create-image`):
 ```json
 {
-  "create-image": {
-    "command": "docker",
-    "args": ["run", "--rm", "-i", "-e", "COMFYUI_API_URL", "create-image"],
-    "env": {
-      "COMFYUI_API_URL": "YOUR_MODAL_COMFYUI_API_URL"
-    }
-  },
   "create-image-stdio": {
     "command": "/Users/farquaad/senor-modal-apps/create-image/create-image",
     "args": [],
@@ -165,7 +156,7 @@ Example (from `create-image`):
 The scaffold creates template `AGENTS.md` and `README.md`. Fill them in:
 
 - **AGENTS.md** — agent-facing: what the MCP does, tool list, how to build/run, key files table
-- **README.md** — human-facing: architecture diagram, tool param tables, build/run/docker instructions, dependencies
+- **README.md** — human-facing: architecture diagram, tool param tables, build/run instructions, dependencies
 
 See `mcps/manage-job/AGENTS.md` and `mcps/manage-job/README.md` for the simplest examples.
 
@@ -229,8 +220,7 @@ Merge into the `mcpServers` object — don't overwrite existing entries.
 | `main.go` | Entry point, env var checks, calls `mcpserver.Run()` |
 | `internal/mcpserver/server.go` | MCP server setup, tool registration, handlers, validation, `jsonResult` helper |
 | `internal/mcpserver/server_test.go` | Handler tests |
-| `Dockerfile` | Multi-stage Go build → Alpine runtime |
-| `mcp-config.json` | Copy-pastable MCP config (Docker + stdio entries) |
+| `mcp-config.json` | Copy-pastable MCP config (stdio entry) |
 | `AGENTS.md` | Agent-facing docs |
 | `README.md` | Human-facing docs |
 | `.gitignore` | Ignore the compiled binary |
@@ -239,6 +229,6 @@ Merge into the `mcpServers` object — don't overwrite existing entries.
 All MCPs use:
 - Go + `github.com/modelcontextprotocol/go-sdk/mcp` v1.6.1
 - stdio transport (`mcp.StdioTransport{}`)
-- Multi-stage Dockerfile (golang:1.25-alpine builder → alpine:latest runtime)
+
 - `jsonResult[T]` generic helper for JSON output
 - `jsonschema` struct tags for tool input schemas

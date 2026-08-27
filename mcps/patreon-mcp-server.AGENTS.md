@@ -28,12 +28,6 @@ Optional:
 uv sync
 ```
 
-## Docker
-
-```bash
-docker build -t patreon-mcp-server .
-```
-
 ## Run
 
 ```bash
@@ -53,5 +47,4 @@ Copy `mcp-config.json` into the agent's MCP config. Set `PATREON_ACCESS_TOKEN`.
 | `src/patreon_mcp_server/tools.py` | `@mcp.tool()` definitions |
 | `src/patreon_mcp_server/models.py` | Pydantic models + JSON:API parsers |
 | `src/patreon_mcp_server/utils/client.py` | PatreonClient HTTP layer |
-| `Dockerfile` | Multi-stage Python build → slim runtime |
 | `mcp-config.json` | MCP config snippet |

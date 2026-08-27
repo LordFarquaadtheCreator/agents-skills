@@ -8,11 +8,11 @@ usage() {
   echo "Usage: $0 <mcp-name> [description]"
   echo ""
   echo "Positional arguments:"
-  echo "  mcp-name    Required. Name of the MCP (used as directory, binary, and Docker image name)."
+  echo "  mcp-name    Required. Name of the MCP (used as directory and binary name)."
   echo "  description Optional. One-line description for AGENTS.md and README.md."
   echo ""
   echo "Creates a new MCP server scaffold under mcps/<mcp-name>/ with:"
-  echo "  main.go, internal/mcpserver/server.go, go.mod, Dockerfile,"
+  echo "  main.go, internal/mcpserver/server.go, go.mod,"
   echo "  mcp-config.json, AGENTS.md, README.md, .gitignore"
   echo "  Also initializes a local git repo."
   exit 1
@@ -149,30 +149,9 @@ EOF
 # Fix the MCP_NAME placeholder in server.go
 sed -i '' "s/MCP_NAME/$MCP_NAME/g" "$MCP_DIR/internal/mcpserver/server.go"
 
-# --- Dockerfile ---
-cat > "$MCP_DIR/Dockerfile" <<EOF
-FROM golang:1.25-alpine AS builder
-
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN go build -o $MCP_NAME .
-
-FROM alpine:latest
-RUN apk add --no-cache ca-certificates
-WORKDIR /app
-COPY --from=builder /app/$MCP_NAME .
-ENTRYPOINT ["./$MCP_NAME"]
-EOF
-
 # --- mcp-config.json ---
 cat > "$MCP_DIR/mcp-config.json" <<EOF
 {
-  "$MCP_NAME": {
-    "command": "docker",
-    "args": ["run", "--rm", "-i", "$MCP_NAME"]
-  },
   "$MCP_NAME-stdio": {
     "command": "/Users/farquaad/agents-skills/mcps/$MCP_NAME/$MCP_NAME",
     "args": []
@@ -201,12 +180,6 @@ TODO: Describe what this MCP does and how it works.
 go build -o $MCP_NAME .
 \`\`\`
 
-## Docker
-
-\`\`\`bash
-docker build -t $MCP_NAME .
-\`\`\`
-
 ## Run
 
 \`\`\`bash
@@ -219,7 +192,6 @@ docker build -t $MCP_NAME .
 |---|---|
 | \`main.go\` | Entry point |
 | \`internal/mcpserver/server.go\` | MCP server setup, tool handlers, validation |
-| \`Dockerfile\` | Multi-stage Go build → Alpine runtime |
 | \`mcp-config.json\` | MCP config snippet |
 EOF
 else
@@ -242,12 +214,6 @@ TODO: Describe what this MCP does and how it works.
 go build -o $MCP_NAME .
 \`\`\`
 
-## Docker
-
-\`\`\`bash
-docker build -t $MCP_NAME .
-\`\`\`
-
 ## Run
 
 \`\`\`bash
@@ -260,7 +226,6 @@ docker build -t $MCP_NAME .
 |---|---|
 | \`main.go\` | Entry point |
 | \`internal/mcpserver/server.go\` | MCP server setup, tool handlers, validation |
-| \`Dockerfile\` | Multi-stage Go build → Alpine runtime |
 | \`mcp-config.json\` | MCP config snippet |
 EOF
 fi
@@ -298,12 +263,6 @@ TODO: Document the tool.
 go build -o $MCP_NAME .
 \`\`\`
 
-## Docker
-
-\`\`\`bash
-docker build -t $MCP_NAME .
-\`\`\`
-
 ## Run
 
 \`\`\`bash
@@ -350,12 +309,6 @@ TODO: Document the tool.
 go build -o $MCP_NAME .
 \`\`\`
 
-## Docker
-
-\`\`\`bash
-docker build -t $MCP_NAME .
-\`\`\`
-
 ## Run
 
 \`\`\`bash
@@ -383,7 +336,6 @@ echo ""
 echo "Created MCP '$MCP_NAME' at $MCP_DIR"
 echo "  .gitignore"
 echo "  AGENTS.md"
-echo "  Dockerfile"
 echo "  README.md"
 echo "  go.mod"
 echo "  main.go"

@@ -22,7 +22,7 @@ Usage: ./commands/create-skill.sh <skill-name> [description] [--openai]
 
 ## `scaffold-mcp.sh`
 
-Scaffolds a new MCP server directory under `mcps/` with Go boilerplate, Dockerfile, and config files. Initializes a local git repo.
+Scaffolds a new MCP server directory under `mcps/` with Go boilerplate and config files. Initializes a local git repo.
 
 ```
 Usage: ./commands/scaffold-mcp.sh <mcp-name> [description]
@@ -30,7 +30,7 @@ Usage: ./commands/scaffold-mcp.sh <mcp-name> [description]
 
 | Argument | Required | Description |
 |---|---|---|
-| `mcp-name` | Yes | Name of the MCP (used as directory, binary, and Docker image name). Must be lowercase letters, digits, and hyphens only. |
+| `mcp-name` | Yes | Name of the MCP (used as directory and binary name). Must be lowercase letters, digits, and hyphens only. |
 | `description` | No | One-line description placed in `AGENTS.md` and `README.md`. |
 
 **What it creates:**
@@ -38,8 +38,7 @@ Usage: ./commands/scaffold-mcp.sh <mcp-name> [description]
 - `mcps/<name>/go.mod` — Go module with `modelcontextprotocol/go-sdk` dependency
 - `mcps/<name>/main.go` — entry point calling `mcpserver.Run()`
 - `mcps/<name>/internal/mcpserver/server.go` — MCP server with example tool, `jsonResult` helper, input/output structs
-- `mcps/<name>/Dockerfile` — multi-stage Go build → Alpine runtime
-- `mcps/<name>/mcp-config.json` — Docker + stdio config entries
+- `mcps/<name>/mcp-config.json` — stdio config entry
 - `mcps/<name>/AGENTS.md` — agent-facing docs template
 - `mcps/<name>/README.md` — human-facing docs template
 - Initializes a local git repo with initial commit

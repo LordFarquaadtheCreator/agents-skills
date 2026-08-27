@@ -63,12 +63,6 @@ Search groups results by type. Experiences always reverse chronological. Bullets
 go build -o resume-builder .
 ```
 
-## Docker
-
-```bash
-docker build -t resume-builder .
-```
-
 ## Run
 
 No env vars required.
@@ -79,7 +73,7 @@ No env vars required.
 
 ## MCP Config
 
-Copy `mcp-config.json` into the agent's MCP config. For Docker, mount a volume so data files persist.
+Copy `mcp-config.json` into the agent's MCP config.
 
 ## Key files
 
@@ -99,5 +93,4 @@ Copy `mcp-config.json` into the agent's MCP config. For Docker, mount a volume s
 | `internal/template/fahad.go` | Fahad template: Times serif, darkgray, two-column layout |
 | `internal/generate/generate.go` | One-page enforcement loop, PDF output |
 | `internal/generate/auto.go` | AutoBuild: constructs ResumeData from search results |
-| `Dockerfile` | Multi-stage Go build → Alpine runtime |
 | `mcp-config.json` | MCP config snippet |

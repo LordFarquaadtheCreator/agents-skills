@@ -48,11 +48,6 @@ cat ~/.codeium/windsurf/mcp_config.json
 
 ## Step 4: Build and verify
 
-If the MCP has a `Dockerfile` and the user wishes to use it via docker, build it:
-```bash
-cd ~/agents-skills/mcps/<mcp-name> && docker build -t <mcp-name> .
-```
-
 If the MCP is a Go binary, build it:
 ```bash
 cd ~/agents-skills/mcps/<mcp-name> && go build -o <mcp-name> .
@@ -69,7 +64,6 @@ cat ~/.codeium/windsurf/mcp_config.json | grep <mcp-name>
 mcps/
 ├── AGENTS.md              # global rules for MCPs
 └── <mcp-name>/
-    ├── Dockerfile          # builds and runs the MCP server
     ├── AGENTS.md           # what this MCP does, how to build/run
     └── mcp-config.json     # copy-pastable entry for mcpServers
 ```
