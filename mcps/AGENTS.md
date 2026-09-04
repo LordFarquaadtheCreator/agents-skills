@@ -18,6 +18,7 @@ All MCP servers are defined here. Each MCP lives in its own directory. This repo
 | [`photocop`](photocop/) | Copy files dir-to-dir, renaming each to `YYYY-MM-DD@HH.MM.SS.EXT` by mtime. Single binary: `photocop copy` (CLI) + `photocop mcp` (MCP server). Exposes `copy_files` tool with `dry_run` preview. `_N` collision suffix, hidden files skipped, mtime preserved. |
 | [`captioner`](captioner/) | Image captioning via Go + opentype. Exposes `caption` tool — composites image with caption text on black bar below. Font fixed 16pt, bar grows to fit. macOS-only (uses `/Library/Fonts/Arial Unicode.ttf`). |
 | [`patreon-mcp-server`](patreon-mcp-server/) | Patreon creator API MCP (read-only). Six tools: `fetch_identity`, `fetch_campaigns`, `fetch_campaign`, `fetch_members`, `fetch_posts`, `fetch_post`. Python + FastMCP. Requires `PATREON_ACCESS_TOKEN`. Upstream: KyuRish/patreon-mcp-server. **Exception** — third-party repo, not forked. `AGENTS.md` and `mcp-config.json` live as siblings (`patreon-mcp-server.AGENTS.md`, `patreon-mcp-server.mcp-config.json`) tracked in this parent repo, not inside the submodule. |
+| [`pawchive-mcp`](pawchive-mcp/) | Read-only MCP wrapping pawchive.pw's public API. 14 tools covering creators, posts, comments, revisions, flag checks, hash search, app version. In-memory cache with 15min TTL. Go + modelcontextprotocol/go-sdk. No auth, no mutations. |
 
 ## Structure
 

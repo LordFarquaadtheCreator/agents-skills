@@ -28,3 +28,6 @@
 [submodule "mcps/patreon-mcp-server"]
 	path = mcps/patreon-mcp-server
 	url = git@github.com:KyuRish/patreon-mcp-server.git
+[submodule "mcps/pawchive-mcp"]
+	path = mcps/pawchive-mcp
+	url = git@github.com:LordFarquaadtheCreator/pawchive-mcp.git
