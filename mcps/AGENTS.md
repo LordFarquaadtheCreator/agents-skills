@@ -8,6 +8,7 @@ All MCP servers are defined here. Each MCP lives in its own directory. This repo
 |---|---|
 | [`create-image`](create-image/) | Image generation via Modal ComfyUI. Exposes `list_loras`, `list_base_models`, and `generate_image` tools. Canonical repo — `senor-modal-apps/create-image` symlinks here. |
 | [`create-video`](create-video/) | Video generation via Modal LTX-2.3. Exposes `generate_video` tool (image → MP4). Canonical repo — `senor-modal-apps/create-video` symlinks here. |
+| [`generate-texture`](generate-texture/) | Tileable PBR texture generation via Modal ComfyUI (Z-Image Turbo + Chord). Exposes `generate_texture` tool (text → 6 PNGs: texture_image, basecolor, normal, roughness, metalness, height). Requires `GENERATE_TEXTURE_API_URL`. |
 | [`browserclaw-mcp`](browserclaw-mcp/) | MCP server wrapping browserclaw for AI agent browser automation. Snapshot + ref targeting, no vision model. Exposes 10 tools: `new_page`, `list_pages`, `snapshot`, `click`, `type`, `fill`, `press`, `scroll`, `navigate`, `close_page`. Node + Playwright + Chromium. |
 | [`cover-letter-writter`](cover-letter-writter/) | Styled PDF cover letter generation with profile CRUD and history. Exposes 7 tools. |
 | [`create-story`](create-story/) | Illustrated PDF + PNG generation from image file paths + markdown text. Exposes `generate_story_pdf` tool. Renders pages via gg, outputs to ~/Desktop/<title>/. Stateless. |
@@ -18,7 +19,7 @@ All MCP servers are defined here. Each MCP lives in its own directory. This repo
 | [`photocop`](photocop/) | Copy files dir-to-dir, renaming each to `YYYY-MM-DD@HH.MM.SS.EXT` by mtime. Single binary: `photocop copy` (CLI) + `photocop mcp` (MCP server). Exposes `copy_files` tool with `dry_run` preview. `_N` collision suffix, hidden files skipped, mtime preserved. |
 | [`captioner`](captioner/) | Image captioning via Go + opentype. Exposes `caption` tool — composites image with caption text on black bar below. Font fixed 16pt, bar grows to fit. macOS-only (uses `/Library/Fonts/Arial Unicode.ttf`). |
 | [`patreon-mcp-server`](patreon-mcp-server/) | Patreon creator API MCP (read-only). Six tools: `fetch_identity`, `fetch_campaigns`, `fetch_campaign`, `fetch_members`, `fetch_posts`, `fetch_post`. Python + FastMCP. Requires `PATREON_ACCESS_TOKEN`. Upstream: KyuRish/patreon-mcp-server. **Exception** — third-party repo, not forked. `AGENTS.md` and `mcp-config.json` live as siblings (`patreon-mcp-server.AGENTS.md`, `patreon-mcp-server.mcp-config.json`) tracked in this parent repo, not inside the submodule. |
-| [`pawchive-mcp`](pawchive-mcp/) | Read-only MCP wrapping pawchive.pw's public API. 14 tools covering creators, posts, comments, revisions, flag checks, hash search, app version. In-memory cache with 15min TTL. Go + modelcontextprotocol/go-sdk. No auth, no mutations. |
+| [`pawchive-mcp`](pawchive-mcp/) | Read-only MCP wrapping pawchive.pw's public API. 15 tools covering creators, posts, comments, revisions, flag checks, hash search, app version, and media download. `download_post_media` fetches a post's images from the CDN, sanitizes them (decode → re-encode to strip metadata/EXIF/payloads, bomb caps), and writes base64 to temp files. In-memory cache with 15min TTL. Go + modelcontextprotocol/go-sdk. No auth, no mutations. |
 
 ## Structure
 

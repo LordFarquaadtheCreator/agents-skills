@@ -31,3 +31,6 @@
 [submodule "mcps/pawchive-mcp"]
 	path = mcps/pawchive-mcp
 	url = git@github.com:LordFarquaadtheCreator/pawchive-mcp.git
+[submodule "mcps/generate-texture"]
+	path = mcps/generate-texture
+	url = git@github.com:LordFarquaadtheCreator/generate-texture.git
