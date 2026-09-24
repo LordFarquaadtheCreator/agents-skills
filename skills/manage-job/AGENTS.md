@@ -1,58 +1,29 @@
-# Agent Instructions — manage-job
+# Agent Instructions — manage-job (skill)
 
-## Structure
+Documentation-only directory: `SKILL.md` for agents using the tracker, this file for agents maintaining the skill. No code, no binary. It is symlinked into `~/.agents/skills/manage-job` and `~/.devin/skills/manage-job`, so edits here reach every agent.
 
-```
-manage-job/
-├── main.go              # rootCmd + main(), flag registration
-├── appscript/           # Go API client package (see appscript/AGENTS.md)
-│   ├── appscript.go     # AppScript struct: Get, Create, Patch, Delete
-│   ├── utils.go         # config loading, repoRoot, sheetsConfig
-│   └── appscript_test.go
-├── apps-script/         # Google Apps Script backend (see apps-script/AGENTS.md)
-│   ├── update-beggers-sheet.ts  # source of truth
-│   ├── update-beggers-sheet.js  # compiled output — deploy this to Apps Script
-│   ├── tsconfig.json
-│   ├── test.sh          # e2e tests against deployed endpoint
-│   └── AGENTS.md
-├── cmd/                 # Cobra commands (see cmd/AGENTS.md)
-│   ├── get.go           # GetCmd
-│   ├── track.go         # TrackCmd
-│   ├── patch.go         # PatchCmd
-│   └── delete.go        # DeleteCmd
-├── go.mod
-└── manage-job           # compiled binary (gitignored)
-```
+## What this skill wraps
 
-## Deployment ID → URL
+- MCP server: `mcps/manage-job/manage-job-mcp` (Go, stdio). Tools: `track_job`, `get_jobs`, `patch_job`, `delete_job`.
+- Backend: a deployed Google Apps Script web app at `https://script.google.com/macros/s/<id>/exec`. All CRUD runs on Google's side. The backend TypeScript source used to live at `skills/manage-job/apps-script/update-beggers-sheet.ts` (added in commit `4778fce`); it is deleted in the current working tree and survives only in git history — recover it from there or from the Apps Script editor if it needs editing.
+- Deployment ID: passed via the `SHEETS_DEPLOYMENT_ID` env var, read once at server startup. There is no config file read at runtime. `config/sheets-deployment.yaml` exists only as the local record of the current ID.
 
-The Apps Script deployment ID is stored in `config/sheets-deployment.yaml` at the repository root. The Go binary reads this file at runtime and constructs the web app URL:
+## Failure signature
 
-```
-https://script.google.com/macros/s/<deploymentId>/exec
-```
+If a tool returns Google Drive HTML ("Page Not Found" / "the file you have requested does not exist" / "unable to open the file at this time"), the calling client's `SHEETS_DEPLOYMENT_ID` is wrong or the deployment was deleted. It is never a sheet-sharing problem. Check every client env block:
 
-The `deploymentId` key in the YAML file is the hash portion of the URL. When a new deployment is created in the Apps Script editor (Deploy → New deployment), a new ID is generated. Update `config/sheets-deployment.yaml` with the new ID — no code changes needed.
+- Zed: `~/.config/zed/settings.json` → `context_servers.manage-job.env`
+- Hermes: `~/.hermes/config.yaml` → `mcp_servers.manage-job.env`
+- Ad-hoc runs: `mcp-call --env SHEETS_DEPLOYMENT_ID=...`
 
-## Config file format
+Also confirm the ID itself is live: `curl -s -o /dev/null -w '%{http_code}' https://script.google.com/macros/s/<id>/exec` — expect 302.
 
-```yaml
-deploymentId: <deploymentId>
-```
+## History
 
-File must exist at `config/sheets-deployment.yaml`. Directory `config/` is gitignored — this file is local only and must be created on each machine.
+The old `manage-job` CLI (`track`, `get`, `patch`, `delete` subcommands) and its `cmd/`, `appscript/`, `apps-script/` files were moved out of this skill dir — the deletions are pending in the working tree. The project is now the MCP submodule only.
 
-## Rebuilding
+## Rebuild / test
 
 ```bash
-cd /Users/farquaad/agents-skills/skills/manage-job && go build -o manage-job .
-```
-
-The binary should not be committed to the repo.
-
-## Testing
-
-Make sure to check for regression by running tests. 
-```bash
-cd /Users/farquaad/agents-skills/skills/manage-job && go test ./appscript/ -v
+cd /Users/farquaad/agents-skills/mcps/manage-job && go build -o manage-job-mcp . && go test ./...
 ```

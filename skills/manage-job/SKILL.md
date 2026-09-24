@@ -1,235 +1,147 @@
 ---
 name: manage-job
-description: Track and retrieve job applications via the Google Sheets backend
+description: Track and retrieve job applications via the manage-job MCP server (Google Sheets backend)
 metadata:
   display-name: Manage Job Applications
   enabled: 'true'
 ---
 # Manage Job Applications
 
-This skill manages job applications via the Google Sheets backend — create, read, update, and delete. The script is a compiled Go binary — no Python or external runtime required.
+Job applications live in one Google Sheet. A deployed Google Apps Script web app does the CRUD; the `manage-job` MCP server is the client. Use the MCP tools — do not touch the sheet or the Apps Script project directly.
 
-## Binary
+## Tools
 
-The compiled binary lives at:
+| Tool | Use |
+|---|---|
+| `track_job` | Record one or more applications. Use immediately after applying to a job. |
+| `get_jobs` | Read rows, with pagination and filters. |
+| `patch_job` | Update one or more rows. |
+| `delete_job` | Delete one or more rows. |
 
-```
-/Users/farquaad/agents-skills/skills/manage-job/manage-job
-```
+If a call fails, stop and tell the user what failed.
 
-All interaction is via stdio. The binary prints results to stdout and errors to stderr. Exit code 0 means success, exit code 1 means failure. If the command fails, you must stop and tell the user that the command failed.
+If a call returns a Google Drive HTML page instead of JSON — "Page Not Found", "Sorry, the file you have requested does not exist", or "Sorry, unable to open the file at this time" — the deployment ID the client was launched with is wrong or the deployment was deleted. It is not a spreadsheet sharing problem. See Configuration.
 
-## Commands
+## track_job
 
-### `track` — Record a new job application
+`jobs`: array of 1 or more entries.
 
-Use this immediately after applying to any job. Creates a new row in the spreadsheet with today's date.
+| Field | Required | Notes |
+|---|---|---|
+| `companyName` | yes | Free-form. |
+| `link` | yes | URL of the individual job posting, must start with `http://` or `https://`. Get it from the posting's share / copy-link button, not a general careers page. |
+| `industry` | yes | Exactly one of `Tech`, `Health Care`, `Retail`, `Finance`, `Gig`, `Other` (case-sensitive). |
+| `status` | yes | Exactly one of `Applied Only`, `Applied + Emailed`, `Applied + Called`, `Applied + Emailed + Called`, `Interview!`, `Got the Job!`, `Didn't Get It`, `Not Started` (case-sensitive). |
+| `dateApplied` | no | `YYYY-MM-DD`. Defaults to today. |
+| `email` | no | Employer contact email. |
+| `phoneNumber` | no | Contact phone, 10-15 digits after formatting characters are stripped. |
+| `notes` | no | Free-form. Omit if there is nothing worth remarking. |
 
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job track <companyName> <link> <industry> <status> [email] [phone] [notes]
-```
-
-#### Required parameters (in order)
-
-1. **companyName** — Name of the company you applied to. This is a free-form string.
-2. **link** — URL of the job posting. Must start with `http://` or `https://`. This must be the link relating to the individual job application, not a general careers page. This link is always attainable by searching through share buttons and copy link buttons on the job posting.
-3. **industry** — Must be exactly one of these values (case-sensitive):
-   - `Tech`
-   - `Health Care`
-   - `Retail`
-   - `Finance`
-   - `Gig`
-   - `Other`
-4. **status** — Must be exactly one of these values (case-sensitive):
-   - `Applied Only`
-   - `Applied + Emailed`
-   - `Applied + Called`
-   - `Applied + Emailed + Called`
-   - `Interview!`
-   - `Got the Job!`
-   - `Didn't Get It`
-   - `Not Started`
-
-#### Optional parameters (in order, can be omitted)
-
-5. **email** — Employer contact email. Must contain `@` and `.`.
-6. **phone** — Contact phone number. Must contain 10-15 digits (formatting characters are stripped).
-7. **notes** — Free-form notes about the job. You do not need to fill this out if there is nothing special to remark about the job. All remaining arguments after phone are joined into the notes string.
-
-Optional parameters can be omitted entirely. You cannot skip an optional parameter and provide a later one — if you want to provide notes but not phone, pass an empty string for phone.
-
-#### Examples
-
-*No optional parameters:*
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job track "Acme Corp" "https://fakejobs.com/quantum-ai-analyst" "Tech" "Not Started"
-```
-
-*With email:*
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job track "Acme Corp" "https://fakejobs.com/quantum-ai-analyst" "Tech" "Not Started" "email@email.com"
-```
-
-*With email and phone:*
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job track "Acme Corp" "https://fakejobs.com/quantum-ai-analyst" "Tech" "Not Started" "email@email.com" "917-999-1234"
-```
-
-*All parameters:*
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job track "Acme Corp" "https://fakejobs.com/quantum-ai-analyst" "Tech" "Not Started" "email@email.com" "917-999-1234" "They said to email \"John\" at \"john@company.com\""
-```
-
-#### Output
-
-On success, prints to stdout:
-```
-Success: {"status":"success"}
-```
-
-On failure, prints error to stderr and exits with code 1.
-
-### `get` — Retrieve all tracked job applications
-
-Fetches all job applications from the spreadsheet. Returns JSON to stdout.
-
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job get
-```
-
-#### Optional query parameters
-
-You can pass key-value pairs as arguments to filter:
-
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job get page 1 pageSize 10 search "Acme" industry "Tech" status "Applied Only" order "desc"
-```
-
-Supported keys:
-- **page** — Page number (default: 1)
-- **pageSize** — Results per page (default: 50)
-- **search** — Search across companyName, link, email, notes
-- **industry** — Filter by industry
-- **status** — Filter by status
-- **order** — Sort by dateApplied: `asc` or `desc` (default: `desc`)
-
-#### Output
-
-Prints JSON to stdout:
 ```json
 {
-  "status": "success",
-  "rows": [
+  "jobs": [
     {
       "companyName": "Acme Corp",
-      "link": "https://...",
-      "dateApplied": "2026-06-27T04:00:00.000Z",
+      "link": "https://fakejobs.com/quantum-ai-analyst",
       "industry": "Tech",
-      "phoneNumber": "5551234567",
-      "email": "a@b.com",
-      "status": "Applied Only",
-      "notes": ""
+      "status": "Not Started",
+      "email": "email@email.com",
+      "phoneNumber": "917-999-1234",
+      "notes": "They said to email John at john@company.com"
     }
-  ],
-  "page": 1,
-  "pageSize": 50,
-  "totalPages": 3,
-  "totalRows": 121
+  ]
 }
 ```
 
-### `patch` — Update an existing job application
+## get_jobs
 
-Updates fields on an existing row. Uses `--matchBy` to find the row and `--update` to specify which fields to change.
+| Param | Default | Notes |
+|---|---|---|
+| `page` | 1 | Page number. |
+| `pageSize` | 50 | Results per page. |
+| `search` | — | Matches companyName, link, email, notes. |
+| `industry` | — | Filter. |
+| `status` | — | Filter. |
+| `order` | desc | Sort by dateApplied: `asc` or `desc`. |
 
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job patch --matchBy '<json>' --update '<json>'
+Returns JSON with `rows`, `page`, `pageSize`, `totalPages`, `totalRows`.
+
+```json
+{
+  "companyName": "Acme Corp",
+  "link": "https://fakejobs.com/quantum-ai-analyst",
+  "dateApplied": "2026-06-27T04:00:00.000Z",
+  "industry": "Tech",
+  "phoneNumber": "5551234567",
+  "email": "a@b.com",
+  "status": "Applied Only",
+  "notes": ""
+}
 ```
 
-#### Flags
+## patch_job
 
-- **`--matchBy`** (required) — JSON object with at least one field to identify the row. Any column can be used: `companyName`, `link`, `dateApplied`, `industry`, `phoneNumber`, `email`, `status`, `notes`.
-- **`--update`** (required) — JSON object with at least one field to change. Same columns as above.
+`patches`: array of 1 or more `{ "matchBy": {...}, "update": {...} }` objects. Any column can appear in either object: `companyName`, `link`, `dateApplied`, `industry`, `phoneNumber`, `email`, `status`, `notes`. `matchBy` needs at least one field; `update` needs at least one field.
 
-#### Examples
-
-*Change status:*
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job patch --matchBy '{"companyName":"Acme Corp"}' --update '{"status":"Interview!"}'
+```json
+{
+  "patches": [
+    {
+      "matchBy": { "companyName": "Acme Corp" },
+      "update": { "status": "Interview!" }
+    }
+  ]
+}
 ```
 
-*Update multiple fields:*
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job patch --matchBy '{"companyName":"Acme Corp","link":"https://example.com"}' --update '{"status":"Didn't Get It","notes":"Rejected"}'
+## delete_job
+
+`deletes`: array of 1 or more `{ "matchBy": {...} }` objects. Use multiple fields when a company name alone could match several rows.
+
+```json
+{
+  "deletes": [
+    { "matchBy": { "companyName": "Acme Corp", "link": "https://example.com" } }
+  ]
+}
 ```
-
-#### Output
-
-On success, prints to stdout:
-```
-Success: {"status":"success"}
-```
-
-On failure, prints error to stderr and exits with code 1.
-
-### `delete` — Delete a job application
-
-Deletes a row from the spreadsheet. Uses `--matchBy` to find the row.
-
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job delete --matchBy '<json>'
-```
-
-#### Flags
-
-- **`--matchBy`** (required) — JSON object with at least one field to identify the row. Same columns as patch.
-
-#### Examples
-
-*Delete by company name:*
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job delete --matchBy '{"companyName":"Acme Corp"}'
-```
-
-*Delete by multiple fields for precision:*
-```bash
-/Users/farquaad/agents-skills/skills/manage-job/manage-job delete --matchBy '{"companyName":"Acme Corp","link":"https://example.com"}'
-```
-
-#### Output
-
-On success, prints to stdout:
-```
-Success: {"status":"success"}
-```
-
-On failure, prints error to stderr and exits with code 1.
 
 ## Configuration
 
-The binary reads the Apps Script deployment ID from `config/sheets-deployment.yaml` at the repository root. This file is gitignored and must exist on the local machine. Format:
+The MCP server reads `SHEETS_DEPLOYMENT_ID` from its environment at startup. The current ID is recorded in `config/sheets-deployment.yaml` at the repository root (gitignored):
 
 ```yaml
-deploymentId: AKfycbwRQ52XCi5htaaHLO1Laizu8-pyYFKI0GEWELSnJHsP1CBDc-9OxNlkWGhlG-8l8tDxIQ
+deploymentId: <deployment-id>
 ```
 
-The deployment ID is the hash in the Apps Script web app URL: `https://script.google.com/macros/s/<deploymentId>/exec`. When a new deployment is created in Apps Script, update this file with the new ID. If it is missing or malformed, the binary will print an error and exit with code 1.
+The web app URL is `https://script.google.com/macros/s/<deployment-id>/exec`.
 
-## Rebuilding
+Client env blocks must match that file:
 
-If you modify `main.go`, recompile:
+- Zed: `~/.config/zed/settings.json` → `context_servers.manage-job.env.SHEETS_DEPLOYMENT_ID`
+- Hermes: `~/.hermes/config.yaml` → `mcp_servers.manage-job.env.SHEETS_DEPLOYMENT_ID`
+
+When a new Apps Script deployment is created, update the file and every client env block, then restart the client so it re-reads the env var.
+
+## No MCP tools available?
+
+Some agents do not have the manage-job MCP registered. Call the server binary through mcp-bridge instead:
 
 ```bash
-cd /Users/farquaad/agents-skills/skills/manage-job && go build -o manage-job main.go
+~/agents-skills/skills/mcp-bridge/scripts/mcp-call/mcp-call \
+  /Users/farquaad/agents-skills/mcps/manage-job/manage-job-mcp -- \
+  call get_jobs --args '{"pageSize":10}' \
+  --env SHEETS_DEPLOYMENT_ID=<deployment-id>
 ```
 
-## Apps Script Backend
+The same `list`, `call`, and `describe` subcommands apply as for any other MCP.
 
-The Google Apps Script source lives in `apps-script/` within this skill directory. The Go binary is a client — the actual CRUD logic runs on Google's servers via the deployed Apps Script web app.
+## Maintenance
 
-- **Source of truth:** `apps-script/update-beggers-sheet.ts`
-- **Compiled output:** `apps-script/update-beggers-sheet.js` (deploy this to Apps Script)
-- **Compile:** `cd apps-script && tsgo --project tsconfig.json`
-- **E2E tests:** `cd apps-script && ./test.sh [URL]`
+Go source lives in `mcps/manage-job/` (stdio MCP server, no CLI). Build and test:
 
-See `apps-script/AGENTS.md` for the full API shape and deployment instructions.
+```bash
+cd /Users/farquaad/agents-skills/mcps/manage-job && go build -o manage-job-mcp . && go test ./...
+```
+
+The Apps Script backend is deployed and maintained outside this repo; backend changes are made in the Apps Script editor. See `mcps/manage-job/AGENTS.md` for the server layout.
