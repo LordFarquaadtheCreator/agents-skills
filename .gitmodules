@@ -34,3 +34,6 @@
 [submodule "mcps/generate-texture"]
 	path = mcps/generate-texture
 	url = git@github.com:LordFarquaadtheCreator/generate-texture.git
+[submodule "mcps/mcps/resume-builder-mcp"]
+	path = mcps/resume-builder-mcp
+	url = git@github.com:LordFarquaadtheCreator/resume-builder-mcp.git
