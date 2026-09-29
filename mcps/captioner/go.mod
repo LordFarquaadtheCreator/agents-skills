@@ -3,7 +3,7 @@ module captioner
 go 1.25.6
 
 require (
-	github.com/modelcontextprotocol/go-sdk v1.7.0
+	github.com/modelcontextprotocol/go-sdk v1.8.0
 	golang.org/x/image v0.44.0
 )
 
