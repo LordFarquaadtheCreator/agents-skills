@@ -13,9 +13,6 @@
 [submodule "mcps/cover-letter-writter"]
 	path = mcps/cover-letter-writter
 	url = https://github.com/LordFarquaadtheCreator/cover-letter-writter.git
-[submodule "mcps/create-story"]
-	path = mcps/create-story
-	url = git@github.com:LordFarquaadtheCreator/create-story.git
 [submodule "mcps/story-tools"]
 	path = mcps/story-tools
 	url = git@github.com:LordFarquaadtheCreator/story-tools.git
@@ -37,3 +34,6 @@
 [submodule "mcps/resume-builder-mcp"]
 	path = mcps/resume-builder-mcp
 	url = git@github.com:LordFarquaadtheCreator/resume-builder-mcp.git
+[submodule "mcps/image-captioner"]
+	path = mcps/image-captioner
+	url = git@github.com:LordFarquaadtheCreator/image-captioner.git
