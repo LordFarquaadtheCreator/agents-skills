@@ -53,7 +53,7 @@ The `--` separator splits the MCP server command from the wrapper subcommand.
 | MCP | Command | Env vars | Tools |
 |---|---|---|---|
 | create-story | `~/agents-skills/mcps/create-story/create-story` | none | `generate_story_pdf` |
-| create-image | `~/agents-skills/mcps/create-image/create-image` | `COMFYUI_API_URL` | `list_loras`, `list_base_models`, `generate_image` |
+| create-image | `~/agents-skills/mcps/create-image/create-image` | `COMFY_HEADLESS_URL` | `list_loras`, `list_base_models`, `generate_image` |
 | create-video | `~/agents-skills/mcps/create-video/create-video` | (check AGENTS.md) | `generate_video` |
 | cover-letter-writter | `~/agents-skills/mcps/cover-letter-writter/cover-letter-writter` | (check AGENTS.md) | 7 tools |
 

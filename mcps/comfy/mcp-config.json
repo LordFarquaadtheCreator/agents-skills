@@ -1,0 +1,8 @@
+{
+  "comfy": {
+    "command": "/Users/farquaad/agents-skills/mcps/comfy/comfy",
+    "args": [],
+    "env": {},
+    "timeout": 1800
+  }
+}

@@ -145,7 +145,7 @@ Example (from `create-image`):
     "command": "/Users/farquaad/senor-modal-apps/create-image/create-image",
     "args": [],
     "env": {
-      "COMFYUI_API_URL": "YOUR_MODAL_COMFYUI_API_URL"
+      "COMFY_HEADLESS_URL": "https://lordfarquaadthecreator--comfy-headless"
     }
   }
 }
